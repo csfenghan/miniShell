@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define BUF_SIZE 		256			//最大命令行输入字符数量
 #define MAX_ARGS 		16			//最大参数数量
@@ -86,7 +88,10 @@ void run_cmd(char **cmd_lines,int n)
 			perror("access failed");
 			return;
 		}				
-		execv(cmd_lines[0],cmd_lines);
+		if(fork()==0){
+			execv(cmd_lines[0],cmd_lines);
+		}
+		//???	
 	}
 }
 
