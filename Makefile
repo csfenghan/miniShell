@@ -7,6 +7,7 @@ OUTPUT=miniShell
 
 all:$(OBJ_FILES)
 	$(CC) $^ -o $(OUTPUT)
+	make -C user
 
 %.o:%.c
 	$(CC) -c $(CC_FLAGES) $^ -o $@

@@ -21,6 +21,18 @@ int openat(int __fd,char *__file,int __oflag,...);
 int fexecve(int __fd,char  *const *__argv,char *const *__envp);
 
 /*
+ *功能：变量初始化
+ * */
+void init()
+{
+	//获取当前路径
+	if(getcwd(curr_path,MAX_PATH_LEN)==NULL){
+		perror("getcwd error");
+	}
+
+}
+
+/*
  *功能：显示提示符，捕获输入字符
  *成功返回1，失败返回-1	
  * */
@@ -142,9 +154,7 @@ int main(int argc,char **argv)
 	char *cmd_lines[MAX_ARGS]={};
 
 	//初始化
-	if(getcwd(curr_path,MAX_PATH_LEN)==NULL){
-		perror("getcwd error");
-	}
+	init();
 
 	while(1){
 		if(get_cmd(buf,BUF_SIZE)>0){
