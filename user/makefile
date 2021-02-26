@@ -1,6 +1,6 @@
 CC=gcc
 
-OUTPUT=bin/ls/
+OUTPUT=bin/ls\
 		bin/cp
 
 all:$(OUTPUT)
