@@ -1,5 +1,5 @@
 CC=gcc
-CC_FLAGES=-g
+CC_FLAGES=-g -Werror -std=c11
 
 SOURCE_FILES=main.c
 OBJ_FILES=$(patsubst %.c,%.o,$(SOURCE_FILES))
