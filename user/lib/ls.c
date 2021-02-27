@@ -1,8 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <dirent.h>
-#include<string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/stat.h>
+#include <pwd.h>
+#include <grp.h>
 
 #define MAX_PATH_LEN 64
 
@@ -18,9 +22,12 @@
 #define IS_SET_I(x)	((x)&LS_I)
 #define IS_SET_L(x)	((x)&LS_L)
 
-
-//给符号添加指定的flags
+//一些奇怪但不得不加的声明
+int fstatat(int,const char *restrict,struct stat *,int);
 int __parse_flags(char,int*);
+void __print_line(int fd,const char *pathname,int flags);
+
+//按照标志的类别添加flags
 inline int __parse_flags(char c,int *flags)
 {
 	switch(c){
@@ -43,23 +50,158 @@ inline int __parse_flags(char c,int *flags)
 	return 1;
 }
 
-//解析ls的输入，给出具体的ls格式
-int parse_input(int argc,char **argv,char *dest_path,int *flags)
+//根据flags的值显示一个文件的输出
+//ls -l格式：-rw-r--r-- 1 fenghan fenghan   304 Feb 27 08:52 Makefile
+void __print_line(int fd,const char *pathname,int flags)
+{
+	char buf[1024]={};
+	char temp[16]={};
+	struct stat st;
+	struct passwd *pw;
+	struct group *gp;
+
+	if(fstatat(fd,pathname,&st,0)<0){
+		perror("cann't get file stat struct");
+		exit(-1);
+	};
+	
+	//是否隐藏文件
+	if(!IS_SET_A(flags)){
+		if(pathname[0]=='.')
+			return;
+	}
+	//依次显示文件类型、权限、link值、所有者、所属组、大小、最后修改日期和文件名
+	if(IS_SET_L(flags)){
+		//显示inode值
+		if(IS_SET_I(flags)){
+			sprintf(temp,"%d",(int)st.st_ino);
+			strcat(buf,temp);
+			strcat(buf," ");
+		}
+
+		//显示文件类型
+		if(S_ISREG(st.st_mode))
+			strcat(buf,"-");
+		else if(S_ISDIR(st.st_mode))
+			strcat(buf,"d");
+		else if(S_ISCHR(st.st_mode))
+			strcat(buf,"c");
+		else if(S_ISLNK(st.st_mode))
+			strcat(buf,"l");
+		else
+			strcat(buf," ");
+		
+		//显示文件权限
+		if(st.st_mode&S_IRUSR)
+			strcat(buf,"r");
+		else
+			strcat(buf,"-");
+
+		if(st.st_mode&S_IWUSR)
+			strcat(buf,"w");
+		else
+			strcat(buf,"-");
+
+		if(st.st_mode&S_IXUSR)
+			strcat(buf,"x");
+		else
+			strcat(buf,"-");
+
+		if(st.st_mode&S_IRGRP)
+			strcat(buf,"r");
+		else	
+			strcat(buf,"-");
+
+		if(st.st_mode&S_IWGRP)
+			strcat(buf,"w");
+		else
+			strcat(buf,"-");
+
+		if(st.st_mode&S_IXGRP)
+			strcat(buf,"x");
+		else
+			strcat(buf,"-");
+
+		if(st.st_mode&S_IROTH)
+			strcat(buf,"r");
+		else
+			strcat(buf,"-");
+
+		if(st.st_mode&S_IWOTH)
+			strcat(buf,"w");
+		else
+			strcat(buf,"-");
+			
+		if(st.st_mode&S_IXOTH)
+			strcat(buf,"x");
+		else
+			strcat(buf,"-");
+
+		strcat(buf," ");
+
+		//显示链接数
+		sprintf(temp,"%d",(int)st.st_nlink);		
+		strcat(buf,temp);
+		strcat(buf," ");
+
+		//显示所属者和所属组
+		if((pw=getpwuid(st.st_uid))==NULL){
+			perror("getpwuid error");
+			exit(-1);
+		}
+		strcat(buf,pw->pw_name);
+		strcat(buf," ");
+			
+		if((gp=getgrgid(st.st_gid))==NULL){
+			perror("getgrgid error");
+			exit(-1);
+		}
+		strcat(buf,gp->gr_name);
+		strcat(buf," ");
+
+		//显示文件大小
+		sprintf(temp,"%d",(int)st.st_size);
+		strcat(buf,temp);
+		strcat(buf," ");
+
+		//显示最后修改时间
+		
+		//显示文件名
+		strcat(buf,pathname);
+
+		//打印
+		printf("%s\n",buf);
+	}
+	//将文件名全部输出到一行
+	else{
+		if(IS_SET_L(flags)){
+			printf("%d ",(int)st.st_ino);
+		}
+		printf("%s   ",pathname);	
+	}
+}
+
+//解析ls的输入
+//dest_path：要显示的目录
+//flags：ls的选项
+void parse_input(int argc,char **argv,char *dest_path,int *flags)
 {
 
 	for(int i=1;i<argc;i++){
 		//如果带有-，则认为是ls的选项
 		if(argv[i][0]=='-'&&argv[i][1]!='\0'){	
 			for(int j=1;argv[i][j]!='\0';j++)
-				if(__parse_flags(argv[i][j],flags)<0)
-					return -1;
+				if(__parse_flags(argv[i][j],flags)<0){
+					fprintf(stderr,"error option -%c",argv[i][j]);
+					exit(-1);
+				}
 			
 		}
 		//如果不是选项，则认为是目标路径
 		else{
 			if(dest_path[0]!=' '){		//如果出现多个路径，则报错
 				fprintf(stderr,"input format error\n");
-				return -1;
+				exit(-1);
 			}	
 			strcpy(dest_path,argv[i]);
 		}
@@ -69,34 +211,44 @@ int parse_input(int argc,char **argv,char *dest_path,int *flags)
 	if(dest_path[0]==' ')
 		strcpy(dest_path,".");
 
-	return 1;
+	if(access(dest_path,F_OK)<0){
+		perror("unknow path");
+		exit(-1);
+	}	
+}
+
+//打印输出
+//ls -l格式：-rw-r--r-- 1 fenghan fenghan   304 Feb 27 08:52 Makefile
+void print_result(const char *dest_path,int flags)
+{
+	int fd;
+	DIR *dp;
+	struct dirent *dirp;
+
+	if((dp=opendir(dest_path))==NULL){
+		perror("opendir failed");
+		exit(-1);
+	}	
+
+	if((fd=open(dest_path,O_RDONLY))<0){
+		perror("failed to open dir file");
+		exit(-1);
+	}	
+
+	//格式化打印输出行
+	while((dirp=readdir(dp))!=NULL){
+		__print_line(fd,dirp->d_name,flags);	
+	}
+	printf("\n");	
 }
 
 int main(int argc,char **argv)
 {
-	DIR *dp;
-	struct dirent *dirp;
 	char dest_path[MAX_PATH_LEN]={' '};
 	int flags=0;
 
-	//解析输入命令
-	if(parse_input(argc,argv,dest_path,&flags)<0){
-		fprintf(stderr,"format error\n");
-		return -1;
-	}
+	parse_input(argc,argv,dest_path,&flags);
+	print_result(dest_path,flags);
 
-	//遍历目录内容
-	if((dp=opendir(dest_path))==NULL){
-		perror("opendir error");
-		exit(0);		
-	}
-	
-	//打印输出
-	while((dirp=readdir(dp))!=NULL){
-		if(dirp->d_name[0]=='.')
-			continue;
-		printf("%s   ",dirp->d_name);	
-	}
-	printf("\n");	
-
+	exit(0);
 }
