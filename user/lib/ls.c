@@ -74,107 +74,63 @@ void __print_line(int fd,const char *pathname,int flags)
 	if(IS_SET_L(flags)){
 		//显示inode值
 		if(IS_SET_I(flags)){
-			sprintf(temp,"%d",(int)st.st_ino);
-			strcat(buf,temp);
-			strcat(buf," ");
+			printf("%6d ",(int)st.st_ino);
 		}
 
 		//显示文件类型
 		if(S_ISREG(st.st_mode))
-			strcat(buf,"-");
+			printf("-");
 		else if(S_ISDIR(st.st_mode))
-			strcat(buf,"d");
+			printf("d");
 		else if(S_ISCHR(st.st_mode))
-			strcat(buf,"c");
+			printf("c");
 		else if(S_ISLNK(st.st_mode))
-			strcat(buf,"l");
+			printf("l");
 		else
-			strcat(buf," ");
+			printf(" ");
 		
 		//显示文件权限
-		if(st.st_mode&S_IRUSR)
-			strcat(buf,"r");
-		else
-			strcat(buf,"-");
+		printf("%c",(st.st_mode&S_IRUSR)?'r':'-');
+		printf("%c",(st.st_mode&S_IWUSR)?'w':'-');
+		printf("%c",(st.st_mode&S_IXUSR)?'x':'-');
 
-		if(st.st_mode&S_IWUSR)
-			strcat(buf,"w");
-		else
-			strcat(buf,"-");
+		printf("%c",(st.st_mode&S_IRGRP)?'r':'-');
+		printf("%c",(st.st_mode&S_IWGRP)?'w':'-');
+		printf("%c",(st.st_mode&S_IXGRP)?'x':'-');
 
-		if(st.st_mode&S_IXUSR)
-			strcat(buf,"x");
-		else
-			strcat(buf,"-");
+		printf("%c",(st.st_mode&S_IROTH)?'r':'-');
+		printf("%c",(st.st_mode&S_IWOTH)?'w':'-');
+		printf("%c ",(st.st_mode&S_IXOTH)?'x':'-');
 
-		if(st.st_mode&S_IRGRP)
-			strcat(buf,"r");
-		else	
-			strcat(buf,"-");
-
-		if(st.st_mode&S_IWGRP)
-			strcat(buf,"w");
-		else
-			strcat(buf,"-");
-
-		if(st.st_mode&S_IXGRP)
-			strcat(buf,"x");
-		else
-			strcat(buf,"-");
-
-		if(st.st_mode&S_IROTH)
-			strcat(buf,"r");
-		else
-			strcat(buf,"-");
-
-		if(st.st_mode&S_IWOTH)
-			strcat(buf,"w");
-		else
-			strcat(buf,"-");
-			
-		if(st.st_mode&S_IXOTH)
-			strcat(buf,"x");
-		else
-			strcat(buf,"-");
-
-		strcat(buf," ");
 
 		//显示链接数
-		sprintf(temp,"%d",(int)st.st_nlink);		
-		strcat(buf,temp);
-		strcat(buf," ");
+		printf("%3d ",(int)st.st_nlink);
 
 		//显示所属者和所属组
 		if((pw=getpwuid(st.st_uid))==NULL){
 			perror("getpwuid error");
 			exit(-1);
 		}
-		strcat(buf,pw->pw_name);
-		strcat(buf," ");
-			
+		printf("%8s ",pw->pw_name);
+		
 		if((gp=getgrgid(st.st_gid))==NULL){
 			perror("getgrgid error");
 			exit(-1);
 		}
-		strcat(buf,gp->gr_name);
-		strcat(buf," ");
+		printf("%8s ",gp->gr_name);
 
 		//显示文件大小
-		sprintf(temp,"%d",(int)st.st_size);
-		strcat(buf,temp);
-		strcat(buf," ");
+		printf("%9d ",(int)st.st_size);
 
 		//显示最后修改时间
 		
 		//显示文件名
-		strcat(buf,pathname);
-
-		//打印
-		printf("%s\n",buf);
+		printf("%s",pathname);
+		printf("\n");	
 	}
 	//将文件名全部输出到一行
 	else{
-		if(IS_SET_L(flags)){
+		if(IS_SET_I(flags)){
 			printf("%d ",(int)st.st_ino);
 		}
 		printf("%s   ",pathname);	
