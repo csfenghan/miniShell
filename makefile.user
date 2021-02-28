@@ -1,0 +1,12 @@
+CC=gcc
+OUTPUT=usr/bin/ls \
+	   usr/bin/cp
+
+all:$(OUTPUT)
+
+###########################
+usr/bin/ls:usr/lib/ls.c
+	$(CC) $^ -o $@
+
+usr/bin/cp:usr/lib/cp.c
+	$(CC) $^ -o $@

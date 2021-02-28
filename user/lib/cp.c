@@ -1,10 +1,4 @@
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/stat.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
+#include "miniShell.h"
 
 #define MAX_PATH_LEN 128
 
