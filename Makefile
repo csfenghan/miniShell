@@ -1,7 +1,7 @@
 CC=gcc
 CC_FLAGES=-g -Werror -std=c11
 
-SOURCE_FILES=main.c
+SOURCE_FILES=main.c unix_api.c
 OBJ_FILES=$(patsubst %.c,%.o,$(SOURCE_FILES))
 OUTPUT=miniShell
 

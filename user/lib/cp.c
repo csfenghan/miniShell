@@ -61,13 +61,13 @@ void copy_file(char *src_path,char *dest_path,int flags)
 	Stat(src_path,&st);
 
 	umask(0);
+	//是目录
 	if(S_ISDIR(st.st_mode)){
 		if(IS_SET_R(flags)){
 
 		}
-		else{
-
-		}
+		else
+			unix_error("cp: -r not specified; omitting directory");
 	}
 
 	//非目录
