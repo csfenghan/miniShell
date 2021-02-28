@@ -1,10 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include "unix_api.h"
 
 #define BUF_SIZE 		256			//最大命令行输入字符数量
 #define MAX_ARGS 		16			//最大参数数量
@@ -16,8 +10,6 @@ char curr_path[MAX_PATH_LEN];		//当前路径
 char *name="fh%";					//提示符
 
 //不声明的话会有warning，很奇怪
-int faccessat(int fd,char *pathname,int mode,int flag);
-int openat(int __fd,char *__file,int __oflag,...);
 int fexecve(int __fd,char  *const *__argv,char *const *__envp);
 
 /*
@@ -25,11 +17,7 @@ int fexecve(int __fd,char  *const *__argv,char *const *__envp);
  * */
 void init()
 {
-	//获取当前路径
-	if(getcwd(curr_path,MAX_PATH_LEN)==NULL){
-		perror("getcwd error");
-	}
-
+	Getcwd(curr_path,MAX_PATH_LEN);
 }
 
 /*
@@ -42,10 +30,8 @@ int get_cmd(char *buf,size_t n)
 	printf("%s",curr_path);
 	printf("%%: ");
 
-	if(fgets(buf,n,stdin)==NULL){
-		perror("fgets error");
-		return -1;
-	}
+	Fgets(buf,n,stdin);	
+
 	return 1;
 }
 
@@ -87,60 +73,40 @@ void run_cmd(char **cmd_lines,int n)
 {
 	//cd命令
 	if(strcmp(cmd_lines[0],"cd")==0){
-		if(n!=2){
-			fprintf(stderr,"cd : too many arguments\n");
-			return;
-		}
-		if(chdir(cmd_lines[1])<0){
-			perror("chdir error");
-			return;
-		}
-		if(getcwd(curr_path,MAX_PATH_LEN)==NULL){
-			perror("getcwd error after chdir");
-			return;
-		}
+		if(n>2)
+			unix_error("cd:too many arguments");
+		
+		Chdir(cmd_lines[1]);
+		Getcwd(curr_path,MAX_PATH_LEN);
 	}	
 	//pwd命令
 	else if(strcmp(cmd_lines[0],"pwd")==0){
 		char buf[MAX_PATH_LEN];
-		if(getcwd(buf,MAX_PATH_LEN)==NULL){
-			perror("getcwd error");
-			return;
-		}
+
+		Getcwd(buf,MAX_PATH_LEN);
 		printf("%s\n",buf);
 	}
 	//执行bin目录中的命令，或者执行其他可执行文件
 	else{
 		//根据路径执行命令
 		if(cmd_lines[0][0]=='.'&&cmd_lines[0][1]=='/'){
-			if(access(cmd_lines[0],F_OK)<0){
-				perror("cmd not exist");
-				return;
-			}
+			Access(cmd_lines[0],F_OK);
 			if(fork()==0){
 				execv(cmd_lines[0],cmd_lines);
-				perror("execve error");
-				return;
+				unix_error("execv error");
 			}
 			wait(NULL);
 		}
 		//在usr/bin中查找命令
 		else{
 			int fd1,fd2;
-			if((fd1=open(PATH,O_RDONLY))<0){
-				perror("open PATH error");
-				return;
-			}
+			fd1=Open(PATH,O_RDONLY,0);
+			Faccessat(fd1,cmd_lines[0],F_OK,0);	
+			fd2=Openat(fd1,cmd_lines[0],O_RDONLY,0);
 				
-			if(faccessat(fd1,cmd_lines[0],F_OK,0)<0){
-				perror("cmd not exist");
-				return;
-			}
-			fd2=openat(fd1,cmd_lines[0],O_RDONLY);
 			if(fork()==0){
 				fexecve(fd2,cmd_lines,env);
-				perror("execve error");
-				return;
+				unix_error("fexecve error");
 			}
 			wait(NULL);
 		}
@@ -153,13 +119,14 @@ int main(int argc,char **argv)
 {
 	char buf[BUF_SIZE];	
 	char *cmd_lines[MAX_ARGS]={};
+	int n;
 
 	init();
 
 	while(1){
 		if(get_cmd(buf,BUF_SIZE)>0){
-			int args=parse_cmd(buf,cmd_lines,MAX_ARGS);
-			run_cmd(cmd_lines,args);
+			n=parse_cmd(buf,cmd_lines,MAX_ARGS);
+			run_cmd(cmd_lines,n);
 		}
 		else
 			fprintf(stderr,"get_cmd error");

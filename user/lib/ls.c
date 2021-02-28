@@ -1,13 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <dirent.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <pwd.h>
-#include <grp.h>
-
+#include "unix_api.h"
 
 #define MAX_PATH_LEN 64
 
@@ -25,11 +16,11 @@
 
 //一些奇怪但不得不加的声明
 int fstatat(int,const char *restrict,struct stat *,int);
-int __parse_flags(char,int*);
+void __parse_flags(char,int*);
 void __print_line(int fd,const char *pathname,int flags);
 
 //按照标志的类别添加flags
-inline int __parse_flags(char c,int *flags)
+inline void __parse_flags(char c,int *flags)
 {
 	switch(c){
 		case 'a':
@@ -45,26 +36,19 @@ inline int __parse_flags(char c,int *flags)
 			*flags|=LS_L;
 			break;
 		default:
-			fprintf(stderr,"unknow value of -%c\n",c);
-			return -1;
+			unix_error("unknow value");
 		}
-	return 1;
 }
 
 //根据flags的值显示一个文件的输出
 //ls -l格式：-rw-r--r-- 1 fenghan fenghan   304 Feb 27 08:52 Makefile
 void __print_line(int fd,const char *pathname,int flags)
 {
-	char buf[1024]={};
-	char temp[16]={};
 	struct stat st;
 	struct passwd *pw;
 	struct group *gp;
 
-	if(fstatat(fd,pathname,&st,0)<0){
-		perror("cann't get file stat struct");
-		exit(-1);
-	};
+	Fstatat(fd,pathname,&st,0);
 	
 	//是否隐藏文件
 	if(!IS_SET_A(flags)){
@@ -108,16 +92,10 @@ void __print_line(int fd,const char *pathname,int flags)
 		printf("%3d ",(int)st.st_nlink);
 
 		//显示所属者和所属组
-		if((pw=getpwuid(st.st_uid))==NULL){
-			perror("getpwuid error");
-			exit(-1);
-		}
+		pw=getpwuid(st.st_uid);
 		printf("%8s ",pw->pw_name);
 		
-		if((gp=getgrgid(st.st_gid))==NULL){
-			perror("getgrgid error");
-			exit(-1);
-		}
+		gp=getgrgid(st.st_gid);
 		printf("%8s ",gp->gr_name);
 
 		//显示文件大小
@@ -148,18 +126,13 @@ void parse_input(int argc,char **argv,char *dest_path,int *flags)
 		//如果带有-，则认为是ls的选项
 		if(argv[i][0]=='-'&&argv[i][1]!='\0'){	
 			for(int j=1;argv[i][j]!='\0';j++)
-				if(__parse_flags(argv[i][j],flags)<0){
-					fprintf(stderr,"error option -%c",argv[i][j]);
-					exit(-1);
-				}
-			
+				__parse_flags(argv[i][j],flags);
 		}
 		//如果不是选项，则认为是目标路径
 		else{
-			if(dest_path[0]!=' '){		//如果出现多个路径，则报错
-				fprintf(stderr,"input format error\n");
-				exit(-1);
-			}	
+			if(dest_path[0]!=' ')			//如果出现多个路径，则报错
+				unix_error("input format error");
+
 			strcpy(dest_path,argv[i]);
 		}
 	}
@@ -167,11 +140,6 @@ void parse_input(int argc,char **argv,char *dest_path,int *flags)
 	//如果没有输入路径，则默认为当前目录
 	if(dest_path[0]==' ')
 		strcpy(dest_path,".");
-
-	if(access(dest_path,F_OK)<0){
-		perror("unknow path");
-		exit(-1);
-	}	
 }
 
 //打印输出
@@ -182,20 +150,14 @@ void print_result(const char *dest_path,int flags)
 	DIR *dp;
 	struct dirent *dirp;
 
-	if((dp=opendir(dest_path))==NULL){
-		perror("opendir failed");
-		exit(-1);
-	}	
-
-	if((fd=open(dest_path,O_RDONLY))<0){
-		perror("failed to open dir file");
-		exit(-1);
-	}	
+	Access(dest_path,F_OK);
+	dp=Opendir(dest_path);
+	fd=Open(dest_path,O_RDONLY,0);
 
 	//格式化打印输出行
-	while((dirp=readdir(dp))!=NULL){
+	while((dirp=Readdir(dp))!=NULL)
 		__print_line(fd,dirp->d_name,flags);	
-	}
+	
 	printf("\n");	
 }
 

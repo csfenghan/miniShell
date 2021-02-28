@@ -1,12 +1,14 @@
 CC=gcc
-OUTPUT=usr/bin/ls \
-	   usr/bin/cp
+CC_FLAGS=-I .
+OUTPUT=user/bin/ls \
+	   user/bin/cp
 
 all:$(OUTPUT)
 
 ###########################
-usr/bin/ls:usr/lib/ls.c
-	$(CC) $^ -o $@
+user/bin/ls:user/lib/ls.c
+	$(CC) $(CC_FLAGS) $^ -o $@
 
-usr/bin/cp:usr/lib/cp.c
-	$(CC) $^ -o $@
+user/bin/cp:user/lib/cp.c
+	$(CC) $(CC_FLAGS) $^ -o $@
+
