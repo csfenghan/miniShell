@@ -82,6 +82,7 @@ int parse_cmd(char *buf,char **cmd_lines,int n)
 	return args;
 }
 
+//根据解析后的输入内容cmd_lines运行命令
 void run_cmd(char **cmd_lines,int n)
 {
 	//cd命令
@@ -153,7 +154,6 @@ int main(int argc,char **argv)
 	char buf[BUF_SIZE];	
 	char *cmd_lines[MAX_ARGS]={};
 
-	//初始化
 	init();
 
 	while(1){
