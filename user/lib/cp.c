@@ -58,23 +58,30 @@ void parse_input(int argc,char **argv,char *src_path,char *src_name,char *dest_p
 		unix_error("missing file operand");
 
 	//判断输入的源路径是目录还是文件，如果是目录，则file_name=NULL
-	temp=strrchr(src_path,'/');	
-	if(strcmp(temp,"/")==0){		//是目录
-		temp=NULL;
-		src_path[strlen(src_path)-1]='\0';
-	}		
-	else{
-		struct stat st;
+	struct stat st;	
+	Stat(src_path,&st);
+	
+	if(S_ISDIR(st.st_mode)){		//是否是目录
+		if(src_path[strlen(src_path)-1]=='/')
+			src_path[strlen(src_path)-1]='\0';
+		*src_name='\0';
 
-		Stat(src_path,&st);
-		if(S_ISDIR(st.st_mode))	//是目录
-			temp=NULL;		
-		else{					//如果不是目录，则将src_path改为目录，file_name为文件名
-			temp++;	
-			src_path[strlen(src_path)-strlen(temp)-1]='\0';
-		}
+		if(dest_path[strlen(dest_path)-1]=='/')
+			dest_path[strlen(dest_path)-1]='\0';
+		*dest_name='\0';
 	}
-	strcpy(src_name,temp);
+	else{
+		if((temp=strrchr(src_path,'/'))==NULL){
+			strcpy(src_path,".");
+			strcpy(src_name,temp);
+		}
+		else{
+			src_path[strlen(src_path)-strlen(src_name)-1]='\0';
+			strcpy(src_name,++temp);
+		}
+			
+		//接下来判断dest_path是目录还是文件
+	}
 }
 
 //将文件src_path复制为dest_path或复制到dest_path路径
