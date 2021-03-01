@@ -134,3 +134,62 @@ struct group *Getgrgid(gid_t gid)
 		unix_error("getgrgid error");
 	return gp;
 }
+
+//进程环境
+int Atexit(void (*func)(void))
+{
+	if(atexit(func)!=0)
+		unix_error("atexit error");
+	return 0;
+}
+
+char *Getenv(const char *name)
+{
+	char *n;
+	if((n=getenv(name))==NULL)
+		unix_error("getenv error");
+	return n;
+}
+
+int Putenv(char *str)
+{
+	if(putenv(str)!=0)
+		unix_error("putenv error");
+	return 0;
+}
+
+int Setenv(const char *name,const char *value,int rewrite)
+{
+	if(setenv(name,value,rewind)<0)
+		unix_error("setenv error");
+	return 0;
+}
+
+int Unsetenv(const char *name)
+{
+	if(unsetenv(name)<0)
+		unix_error("unsetenv error");
+	return 0;
+}
+
+int Getrlimit(int resource,struct rlimit *rlptr)
+{
+	if(getrlimit(resource,rlptr)!=0)
+		unix_error("getrlimit error");
+	return 0;
+}
+
+int Setrlimit(int resource,const struct rlimit *rlptr)
+{
+	if(setrlimit(resource,rlptr)!=0)
+		unix_error("setrlimit error");
+	return 0;
+}
+
+pid_t Fork(void)
+{
+	int n;
+	if((n=fork())<0)
+		unix_error("fork error");
+	return n;
+}

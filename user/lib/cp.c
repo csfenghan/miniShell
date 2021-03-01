@@ -5,10 +5,10 @@
 #define CP_R		(1<<18)
 #define IS_SET_R(x) ((x)&CP_R)
 
-void __parser_flags(char c,int *flags);
+void parser_flags(char c,int *flags);
 
 
-inline void __parser_flags(char c,int *flags)
+inline void parser_flags(char c,int *flags)
 {
 	switch(c){
 		case 'r':
@@ -35,7 +35,7 @@ void parse_input(int argc,char **argv,char *src_path,char *dest_path,int *flags)
 		//如果带有-，则认为是option
 		if(argv[i][0]=='-'){
 			for(int j=1;argv[i][j]!='\0';j++)
-				__parser_flags(argv[i][j],flags);
+				parser_flags(argv[i][j],flags);
 		}		
 		//否则认为是路径
 		else{
@@ -83,6 +83,34 @@ void copy_file(char *src_path,char *dest_path,int flags)
 			Write(dest_fd,buf,n);
 		}
 	}
+}
+
+//复制一个目录
+void copy_dir(char *src_path,char *dest_path,int flags)
+{
+
+}
+
+//执行复制任务
+void copy(char *src_path,char *dest_path,int flags)
+{
+	struct stat st;
+
+	Access(src_path,F_OK);
+	Stat(src_path,&st);
+	
+	//如果src_path是目录
+	if(S_ISDIR(st.st_mode)){
+		if(IS_SET_R(flags)){
+
+		}
+		else
+			unix_error("");
+	}
+	else{
+
+	}
+
 }
 
 int main(int argc,char **argv)

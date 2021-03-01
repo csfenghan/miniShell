@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/ioctl.h>
+#include <sys/resource.h>
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -105,5 +106,17 @@ char *Fgets(char *buf,int n,FILE *fp);
 //系统文件信息
 struct passwd *Getpwuid(uid_t uid);
 struct group *Getgrgid(gid_t gid);
+
+//进程环境
+int Atexit(void (*func)(void));
+
+char *Getenv(const char *name);
+int Putenv(char *str);
+int Setenv(const char *name,const char *value,int rewrite);
+int Unsetenv(const char *name);
+int Getrlimit(int resource,struct rlimit *rlptr);
+int Setrlimit(int resource,const struct rlimit *rlptr);
+
+pid_t Fork(void);
 
 #endif
