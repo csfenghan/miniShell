@@ -160,7 +160,7 @@ int Putenv(char *str)
 
 int Setenv(const char *name,const char *value,int rewrite)
 {
-	if(setenv(name,value,rewind)<0)
+	if(setenv(name,value,rewrite)<0)
 		unix_error("setenv error");
 	return 0;
 }

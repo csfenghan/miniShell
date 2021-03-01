@@ -1,5 +1,5 @@
 CC=gcc
-CC_FLAGES=-g -Werror -std=c11
+CC_FLAGES=-g 
 
 SOURCE_FILES=main.c unix_api.c
 OBJ_FILES=$(patsubst %.c,%.o,$(SOURCE_FILES))
