@@ -119,7 +119,7 @@ void copy_dir(char *src_path,char *dest_path,int flags)
 {
 	DIR *dp;
 	struct dirent *drip;
-	char *file_name,temp;
+//	char *file_name,temp;
 
 	dp=Opendir(src_path);
 	while((drip=Readdir(dp))!=NULL){
