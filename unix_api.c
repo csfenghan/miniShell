@@ -79,6 +79,13 @@ int Faccessat(int fd,const char *pathname,int mode,int flag)
 	return 0;
 }
 
+int Mkdir(const char *pathname,mode_t mode)
+{
+	if(mkdir(pathname,mode)<0)
+		unix_error("mkdir error");
+	return 0;
+}
+
 DIR *Opendir(const char *pathname)
 {
 	DIR *dp;

@@ -1,158 +1,133 @@
 #include "unix_api.h"
 
-#define MAX_PATH_LEN 128
+#define MAX_NAME_LEN 128
 
 #define CP_R		(1<<18)
 #define IS_SET_R(x) ((x)&CP_R)
 
-void parser_flags(char c,int *flags);
-
-
-inline void parser_flags(char c,int *flags)
+//解析输入，获得输入的源路径和目的路径以及选项
+int parse_input(int argc,char **argv,char **src_path,char **dest_path)
 {
-	switch(c){
-		case 'r':
-			*flags|=CP_R;
-			break;
+	int flags=0;
 
-		default:
-			unix_error("invalid option");
-			break;
-	}
-}
-
-//解析输入命令
-//example1:
-//		input:argc=4,argv={"cp","-r","/home/my/a.txt","/home/my/b.txt"}
-//		output:src_path="/home/my",file_name=NULL,dest_path="/home/my/b.txt",*flags=*flags|CP_R
-//exampl2:
-//		input:argc=3,argv={"cp","/home/my/foo.txt","/home/my/temp/"}
-//		output:src_path="/home/my",file_name="foo.txt",dest_path="/home/my/temp/foo.txt"
-//
-void parse_input(int argc,char **argv,char *src_path,char *src_name,char *dest_path,char *dest_name,int *flags)
-{
-	char *temp;
-
-	if(strcmp(argv[0],"cp")!=0)
-		unix_error("input format error");
-	
-	//解析输入
 	for(int i=1;i<argc;i++){
-		//如果带有-，则认为是option
+		//第i个参数是选项
 		if(argv[i][0]=='-'){
-			for(int j=1;argv[i][j]!='\0';j++)
-				parser_flags(argv[i][j],flags);
-		}		
-		//否则认为是路径
+			for(int j=1;argv[i][j]!='\0';j++){
+				switch(argv[i][j]){
+					case 'r':
+						flags|=CP_R;break;
+					default:
+						return -1;
+				}
+			}
+		}
+		//第i个参数是路径
 		else{
-			if(src_path[0]=='\0')			//遇到的第一个路径
-				strcpy(src_path,argv[i]);
-			else if(dest_path[0]=='\0')		//遇到的第二个路径
-				strcpy(dest_path,argv[i]);
-			else							//路径超过两个
-				unix_error("too many arguments");
+			if(*src_path==NULL)
+				*src_path=argv[i];
+			else if(*dest_path==NULL)
+				*dest_path=argv[i];
+			else
+				return -1;
 		}
 	}	
 
-	if(src_path[0]=='\0'||dest_path[0]=='\0')
-		unix_error("missing file operand");
+	return flags;
+}
 
-	//判断输入的源路径是目录还是文件，如果是目录，则file_name=NULL
+//获得输入的源目录和源文件名，以及目的目录和目的路径名
+//src_fd和dest_fd分别是源目录和目的目录的文件描述符，*src_path和*dest_path被指向文件名（如果没有的话则为NULL)
+void parse_cmd(char **src_path,char **dest_path,int *src_fd,int *dest_fd,int flags)
+{
 	struct stat st;	
-	Stat(src_path,&st);
-	
-	if(S_ISDIR(st.st_mode)){		//是否是目录
-		if(src_path[strlen(src_path)-1]=='/')
-			src_path[strlen(src_path)-1]='\0';
-		*src_name='\0';
 
-		if(dest_path[strlen(dest_path)-1]=='/')
-			dest_path[strlen(dest_path)-1]='\0';
-		*dest_name='\0';
+	////////////////////////////////////////////////////////////////
+	Stat(*src_path,&st);
+	if(S_ISDIR(st.st_mode)){		//如果复制的是目录
+		if(!IS_SET_R(flags))
+			unix_error("need -r options");
+
+		*src_fd=Open(*src_path,O_RDONLY,0);
+		*src_path=NULL;	
+
+		if(access(*dest_path,F_OK)<0)	//如果目标目录不存在，则创建
+			Mkdir(*dest_path,S_IRUSR|S_IWUSR|S_IXUSR);	
+		else{
+			Stat(*dest_path,&st);
+			if(!S_ISDIR(st.st_mode))
+				unix_error("dest path is not a directory");
+		}
+		*dest_fd=Open(*dest_path,O_RDONLY,0);	
+		*dest_path=NULL;
 	}
-	else{
-		if((temp=strrchr(src_path,'/'))==NULL){
-			strcpy(src_path,".");
-			strcpy(src_name,temp);
+	//////////////////////////////////////////////////////////////
+	else{							//如果复制的是文件
+		char *temp=strrchr(*src_path,'/');
+		if(temp==NULL){		//说明是在当前目录的文件
+			*src_fd=Open(".",O_RDONLY,0);
+		}
+		else{				
+			*src_path[strlen(*src_path)-strlen(temp)-1]='\0';
+			*src_fd=Open(*src_path,O_RDONLY,0);
+			*src_path=temp+1;
+		}
+
+		//处理目的路径
+		if(access(*dest_path,F_OK)<0){
+			temp=strrchr(*dest_path,'/');
+			if(temp==NULL)
+				unix_error("error");
+			*dest_path[strlen(*dest_path)-strlen(temp)-1]='\0';
+			if(strcmp(*dest_path,"/home/fenghan/miniShell")==0)
+				printf("%s\n",*dest_path);
+			*dest_fd=Open(*dest_path,O_RDONLY,0);
+			*dest_path=temp+1;
+			printf("%s\n",*dest_path);
 		}
 		else{
-			src_path[strlen(src_path)-strlen(src_name)-1]='\0';
-			strcpy(src_name,++temp);
-		}
-			
-		//接下来判断dest_path是目录还是文件
-	}
-}
-
-//将文件src_path复制为dest_path或复制到dest_path路径
-void copy_file(char *src_path,char *file_name,char *dest_path,int flags)
-{
-	struct stat st;
-	char buf[4096];
-	int dir_fd,src_fd,dest_fd,n;
-
-	//如果没有指定文件名，则默认为src_path的文件名	
-	if(access(dest_path,F_OK)==0){		
-		Stat(dest_path,&st);	
-		if(S_ISDIR(st.st_mode)){		//如果文件存在且是目录，则默认被复制的文件名即复制后的文件名
-
-			if(dest_path[strlen(dest_path)-1]!='/')
-				strcat(dest_path,"/");
-
-			strcat(dest_path,file_name);
+			struct stat st;
+			Stat(*dest_path,&st);
+			if(S_ISDIR(st.st_mode)){
+				*dest_fd=Open(*dest_path,O_RDONLY,0);
+				*dest_path=*src_path;
+			}
+			else{
+				temp=strrchr(*dest_path,'/');
+				if(temp==NULL)
+					*dest_fd=Open(".",O_RDONLY,0);
+				else{
+					*dest_path[strlen(*dest_path)-strlen(temp)-1]='\0';
+					*dest_fd=Open(*dest_path,O_RDONLY,0);
+					*dest_path=temp+1;
+				}
+			}
 		}
 	}
-
-	//开始复制
-	
-	umask(0);
-	dir_fd=Open(src_path,O_RDONLY,0);
-	src_fd=Openat(dir_fd,src_path,O_RDONLY,0);
-	dest_fd=Open(dest_path,O_RDWR|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
-
-	while((n=Read(src_fd,buf,sizeof(buf)))>0)
-		Write(dest_fd,buf,n);
 }
 
-//复制一个目录
-void copy_dir(char *src_path,char *dest_path,int flags)
+void copy(int src_fd,int dest_fd,char *src_path,char *dest_path)
 {
-	DIR *dp;
-	struct dirent *drip;
-//	char *file_name,temp;
 
-	dp=Opendir(src_path);
-	while((drip=Readdir(dp))!=NULL){
-		
-	}
-
-}
-
-//执行复制任务
-void copy(char *src_path,char *file_name,char *dest_path,int flags)
-{
-	Access(src_path,F_OK);
-	//如果被复制的是目录
-	if(file_name==NULL){
-		if(IS_SET_R(flags))
-			copy_dir(src_path,dest_path,flags);
-		else
-			unix_error("cp: -r not specified; omitting directory");
-	}
-	else
-		copy_file(src_path,file_name,dest_path,flags);
 }
 
 int main(int argc,char **argv)
 {
-	char src_path[MAX_PATH_LEN]={};
-	char src_name[MAX_PATH_LEN]={};
-	char dest_path[MAX_PATH_LEN]={};
-	char dest_name[MAX_PATH_LEN]={};
-	int flags=0;
+	char src_path[1024]={},dest_path[1024]={};
+	int src_fd,dest_fd;
+	int flags;
 
-	parse_input(argc,argv,src_path,src_name,dest_path,dest_name,&flags);
-	copy(src_path,src_name,dest_path,flags);
+	if(strcmp(argv[0],"cp")!=0&&strcmp(argv[0],"./cp")!=0)
+		unix_error("error usage of cp");
+
+	umask(0);
+
+	if((flags=parse_input(argc,argv,src_path,dest_path))<0)
+		unix_error("invalid option");
+
+	parse_cmd(&src_path,&dest_path,&src_fd,&dest_fd,flags);
+	
+	printf("src_path:%s,dest_path:%s,flags:%d\n",src_path,dest_path,flags);
 
 	exit(0);
 }
