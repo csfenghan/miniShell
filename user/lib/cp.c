@@ -108,7 +108,7 @@ void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file,int 
 {
     int src_file_fd,dest_file_fd;
     if(is_dir){
-        if(faccessat(dest_file_fd,dest_file,F_OK,0)!=0)
+        if(faccessat(dest_dir_fd,dest_file,F_OK,0)!=0)
             Mkdirat(dest_dir_fd,dest_file,S_IRUSR|S_IWUSR|S_IXUSR);
 
         DIR *dp;
@@ -120,7 +120,7 @@ void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file,int 
         dp=Fopendir(src_file_fd);
 
         while((dirp=Readdir(dp))!=NULL){
-            Fstatat(src_dir_fd,dirp->d_name,&st,0); 
+            Fstatat(src_file_fd,dirp->d_name,&st,0); 
             if(S_ISDIR(st.st_mode)){
                 copy_dir(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name,1);
             }else{
