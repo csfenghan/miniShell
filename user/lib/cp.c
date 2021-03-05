@@ -1,133 +1,170 @@
 #include "unix_api.h"
 
-#define MAX_NAME_LEN 128
-
-#define CP_R		(1<<18)
+#define MAX_PATH_LEN 1024
+#define CP_R    (1<<('r'-'a'))
 #define IS_SET_R(x) ((x)&CP_R)
 
-//解析输入，获得输入的源路径和目的路径以及选项
-int parse_input(int argc,char **argv,char **src_path,char **dest_path)
+//解析argv参数
+void parse_input(int argc,char **argv,char *src_path,char *dest_path,int *flags)
 {
-	int flags=0;
+    for(int i=1;i<argc;i++){
+        if(argv[i][0]=='-'){    //以-开头，代表选项
+            for(int j=1;j<strlen(argv[i]);j++)
+                switch(argv[i][j]){
+                    case 'r':   *flags|=CP_R;break;
+                    default:    unix_error("invalid option");
+                }
+        }else{                  //否则默认是路径
+            if(src_path[0]=='\0')
+                strcpy(src_path,argv[i]);
+            else if(dest_path[0]=='\0')
+                strcpy(dest_path,argv[i]);
+            else
+                unix_error("cp: too many arguments");
+        }
+    }
 
-	for(int i=1;i<argc;i++){
-		//第i个参数是选项
-		if(argv[i][0]=='-'){
-			for(int j=1;argv[i][j]!='\0';j++){
-				switch(argv[i][j]){
-					case 'r':
-						flags|=CP_R;break;
-					default:
-						return -1;
-				}
-			}
-		}
-		//第i个参数是路径
-		else{
-			if(*src_path==NULL)
-				*src_path=argv[i];
-			else if(*dest_path==NULL)
-				*dest_path=argv[i];
-			else
-				return -1;
-		}
-	}	
-
-	return flags;
+    if(dest_path[0]=='\0')
+        unix_error("cp: missing file operand");
 }
 
-//获得输入的源目录和源文件名，以及目的目录和目的路径名
-//src_fd和dest_fd分别是源目录和目的目录的文件描述符，*src_path和*dest_path被指向文件名（如果没有的话则为NULL)
-void parse_cmd(char **src_path,char **dest_path,int *src_fd,int *dest_fd,int flags)
+void parse_src_path(char *src_path,char *src_file,int *is_dir)
 {
-	struct stat st;	
+    struct stat st;
+    char *name;    
+    //解析源路径
+    Stat(src_path,&st);
+    *is_dir=S_ISDIR(st.st_mode)?1:0;
 
-	////////////////////////////////////////////////////////////////
-	Stat(*src_path,&st);
-	if(S_ISDIR(st.st_mode)){		//如果复制的是目录
-		if(!IS_SET_R(flags))
-			unix_error("need -r options");
-
-		*src_fd=Open(*src_path,O_RDONLY,0);
-		*src_path=NULL;	
-
-		if(access(*dest_path,F_OK)<0)	//如果目标目录不存在，则创建
-			Mkdir(*dest_path,S_IRUSR|S_IWUSR|S_IXUSR);	
-		else{
-			Stat(*dest_path,&st);
-			if(!S_ISDIR(st.st_mode))
-				unix_error("dest path is not a directory");
-		}
-		*dest_fd=Open(*dest_path,O_RDONLY,0);	
-		*dest_path=NULL;
-	}
-	//////////////////////////////////////////////////////////////
-	else{							//如果复制的是文件
-		char *temp=strrchr(*src_path,'/');
-		if(temp==NULL){		//说明是在当前目录的文件
-			*src_fd=Open(".",O_RDONLY,0);
-		}
-		else{				
-			*src_path[strlen(*src_path)-strlen(temp)-1]='\0';
-			*src_fd=Open(*src_path,O_RDONLY,0);
-			*src_path=temp+1;
-		}
-
-		//处理目的路径
-		if(access(*dest_path,F_OK)<0){
-			temp=strrchr(*dest_path,'/');
-			if(temp==NULL)
-				unix_error("error");
-			*dest_path[strlen(*dest_path)-strlen(temp)-1]='\0';
-			if(strcmp(*dest_path,"/home/fenghan/miniShell")==0)
-				printf("%s\n",*dest_path);
-			*dest_fd=Open(*dest_path,O_RDONLY,0);
-			*dest_path=temp+1;
-			printf("%s\n",*dest_path);
-		}
-		else{
-			struct stat st;
-			Stat(*dest_path,&st);
-			if(S_ISDIR(st.st_mode)){
-				*dest_fd=Open(*dest_path,O_RDONLY,0);
-				*dest_path=*src_path;
-			}
-			else{
-				temp=strrchr(*dest_path,'/');
-				if(temp==NULL)
-					*dest_fd=Open(".",O_RDONLY,0);
-				else{
-					*dest_path[strlen(*dest_path)-strlen(temp)-1]='\0';
-					*dest_fd=Open(*dest_path,O_RDONLY,0);
-					*dest_path=temp+1;
-				}
-			}
-		}
-	}
+    if(src_path[strlen(src_path)-1]=='/')
+        src_path[strlen(src_path)-1]='\0';
+    
+    name=strrchr(src_path,'/');
+    if(name==NULL){
+        strcpy(src_file,src_path);
+        strcpy(src_path,".");
+    }else{
+        strcpy(src_file,++name);
+        src_path[strlen(src_path)-strlen(name)]='\0';
+    }
 }
 
-void copy(int src_fd,int dest_fd,char *src_path,char *dest_path)
+void parse_dest_path(char *dest_path,char *dest_file,char *src_file,int *is_dir)
 {
+    char *name;
+
+    if(dest_path[strlen(dest_path)-1]=='/')
+        dest_path[strlen(dest_path)-1]='\0';
+
+    //解析目的路径
+    if(access(dest_path,F_OK)==0){
+        struct stat st;
+        Stat(dest_path,&st);
+
+        if(S_ISDIR(st.st_mode))
+            strcpy(dest_file,src_file);
+        else{
+            name=strrchr(dest_path,'/');
+            if(name==NULL){
+                strcpy(dest_file,dest_path);
+                strcpy(dest_path,".");
+            }else{
+                strcpy(dest_file,++name);
+                dest_path[strlen(dest_path)-strlen(name)]='\0';
+            }
+        }
+    }else{                          //如果目的位置不存在
+        name=strrchr(dest_path,'/');
+        if(name==NULL){
+            strcpy(dest_file,dest_path);
+            strcpy(dest_path,".");
+        }else{
+            strcpy(dest_file,++name);
+            dest_path[strlen(dest_path)-strlen(name)]='\0';
+        }
+    }
+}
+
+//解析要输入的源路径源文件和目的路径和目的文件
+void parse_path(char *src_path,char *src_file,char *dest_path,char *dest_file,int *is_dir)
+{
+    parse_src_path(src_path,src_file,is_dir);
+    parse_dest_path(dest_path,dest_file,src_file,is_dir);
+}
+void copy_file(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
+{
+    int src_file_fd,dest_file_fd;
+    char buf[4096];
+    int n;
+
+    src_file_fd=Openat(src_dir_fd,src_file,O_RDONLY,0);
+    dest_file_fd=Openat(dest_dir_fd,dest_file,O_RDWR|O_CREAT|O_TRUNC,S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH);
+
+    while((n=Read(src_file_fd,buf,4096))>0)
+        Write(dest_file_fd,buf,n);
+}
+
+void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file,int is_dir)
+{
+    int src_file_fd,dest_file_fd;
+    if(is_dir){
+        if(faccessat(dest_file_fd,dest_file,F_OK,0)!=0)
+            Mkdirat(dest_dir_fd,dest_file,S_IRUSR|S_IWUSR|S_IXUSR);
+
+        DIR *dp;
+        struct dirent *dirp;
+        struct stat st;
+
+        src_file_fd=Openat(src_dir_fd,src_file,O_RDONLY,0);
+        dest_file_fd=Openat(dest_dir_fd,dest_file,O_RDONLY,0);
+        dp=Fopendir(src_file_fd);
+
+        while((dirp=Readdir(dp))!=NULL){
+            Fstatat(src_dir_fd,dirp->d_name,&st,0); 
+            if(S_ISDIR(st.st_mode)){
+                copy_dir(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name,1);
+            }else{
+                copy_file(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name);
+            }
+        }   
+    }else{
+        copy_file(src_dir_fd,src_file,dest_dir_fd,dest_file);
+    }
 
 }
+void start_copy(char *src_path,char *src_file,char *dest_path,char *dest_file,int is_dir,int flags)
+{
+    if(is_dir&&(!IS_SET_R(flags)))
+        unix_error("cp: -r not specified");
+
+    int src_dir_fd,dest_dir_fd;
+
+    src_dir_fd=Open(src_path,O_RDONLY,0);
+    dest_dir_fd=Open(dest_path,O_RDONLY,0);
+
+    if(is_dir){
+        copy_dir(src_dir_fd,src_file,dest_dir_fd,dest_file,1);
+    }
+    else
+        copy_file(src_dir_fd,src_file,dest_dir_fd,dest_file);
+}
+
 
 int main(int argc,char **argv)
 {
-	char src_path[1024]={},dest_path[1024]={};
-	int src_fd,dest_fd;
-	int flags;
+    char src_path[MAX_PATH_LEN]={'\0'},dest_path[MAX_PATH_LEN]={'\0'};
+    char src_file[64]={'\0'},dest_file[64]={'\0'};
+    int is_dir=0,flags=0;
 
-	if(strcmp(argv[0],"cp")!=0&&strcmp(argv[0],"./cp")!=0)
-		unix_error("error usage of cp");
+    umask(0);
 
-	umask(0);
+    parse_input(argc,argv,src_path,dest_path,&flags);
+    parse_path(src_path,src_file,dest_path,dest_file,&is_dir);
+    start_copy(src_path,src_file,dest_path,dest_file,is_dir,flags);
 
-	if((flags=parse_input(argc,argv,src_path,dest_path))<0)
-		unix_error("invalid option");
-
-	parse_cmd(&src_path,&dest_path,&src_fd,&dest_fd,flags);
-	
-	printf("src_path:%s,dest_path:%s,flags:%d\n",src_path,dest_path,flags);
-
-	exit(0);
+    printf("src_path:%s\n",src_path);
+    printf("src_file:%s\n",src_file);
+    printf("dest_path:%s\n",dest_path);
+    printf("dest_file:%s\n",dest_file);
+    printf("is_dir:%d\n",is_dir);
 }

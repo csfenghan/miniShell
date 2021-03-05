@@ -119,4 +119,7 @@ int Setrlimit(int resource,const struct rlimit *rlptr);
 
 pid_t Fork(void);
 
+pid_t Wait(int *staloc);
+pid_t Waitpid(pid_t pid,int *staloc,int options);
+
 #endif

@@ -1,0 +1,8 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/fenghan/miniShell'
+gcc -c -g  main.c -o main.o
+gcc -c -g  unix_api.c -o unix_api.o
+gcc main.o unix_api.o -o miniShell
+make -f makefile.user
+make: Leaving directory '/home/fenghan/miniShell'
+ 

@@ -86,11 +86,26 @@ int Mkdir(const char *pathname,mode_t mode)
 	return 0;
 }
 
+int Mkdirat(int fd,const char *pathname,mode_t mode)
+{
+	if(mkdirat(fd,pathname,mode)<0)
+		unix_error("mkdirat error");
+	return 0;
+}
+
 DIR *Opendir(const char *pathname)
 {
 	DIR *dp;
 	if((dp=opendir(pathname))==NULL)
 		unix_error("opendir error");
+	return dp;
+}
+
+DIR *Fopendir(int fd)
+{
+	DIR *dp;
+	if((dp=Fopendir(fd))==NULL)
+		unix_error("fopendir error");
 	return dp;
 }
 
@@ -193,6 +208,7 @@ int Setrlimit(int resource,const struct rlimit *rlptr)
 	return 0;
 }
 
+////////////////////////////////////////////////
 pid_t Fork(void)
 {
 	int n;
@@ -200,3 +216,24 @@ pid_t Fork(void)
 		unix_error("fork error");
 	return n;
 }
+
+pid_t Wait(int *staloc)
+{
+	pid_t n;
+	if((n=wait(staloc))<=0)
+		unix_error("wait error");
+
+	return n;
+}
+
+pid_t Waitpid(pid_t pid,int *staloc,int options)
+{
+	pid_t n;
+	if((n=waitpid(pid,staloc,options))<=0)
+		unix_error("waitpid error");
+	
+	return n;
+}
+
+
+
