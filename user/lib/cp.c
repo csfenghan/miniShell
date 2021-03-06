@@ -28,13 +28,16 @@ void parse_input(int argc,char **argv,char *src_path,char *dest_path,int *flags)
         unix_error("cp: missing file operand");
 }
 
-void parse_src_path(char *src_path,char *src_file,int *is_dir)
+//解析源路径，如果是目录返回1，否则返回0
+int parse_src_path(char *src_path,char *src_file)
 {
     struct stat st;
     char *name;    
+	int is_dir=0;
+
     //解析源路径
     Stat(src_path,&st);
-    *is_dir=S_ISDIR(st.st_mode)?1:0;
+    is_dir=S_ISDIR(st.st_mode)?1:0;
 
     if(src_path[strlen(src_path)-1]=='/')
         src_path[strlen(src_path)-1]='\0';
@@ -47,9 +50,12 @@ void parse_src_path(char *src_path,char *src_file,int *is_dir)
         strcpy(src_file,++name);
         src_path[strlen(src_path)-strlen(name)]='\0';
     }
+
+	return is_dir;
 }
 
-void parse_dest_path(char *dest_path,char *dest_file,char *src_file,int *is_dir)
+//解析目的路径，当目的路径没有给出文件名时，使用源路径的文件名来作为目的文件的文件名
+void parse_dest_path(char *dest_path,char *dest_file,char *default_file)
 {
     char *name;
 
@@ -62,7 +68,7 @@ void parse_dest_path(char *dest_path,char *dest_file,char *src_file,int *is_dir)
         Stat(dest_path,&st);
 
         if(S_ISDIR(st.st_mode))
-            strcpy(dest_file,src_file);
+            strcpy(dest_file,default_file);
         else{
             name=strrchr(dest_path,'/');
             if(name==NULL){
@@ -85,12 +91,7 @@ void parse_dest_path(char *dest_path,char *dest_file,char *src_file,int *is_dir)
     }
 }
 
-//解析要输入的源路径源文件和目的路径和目的文件
-void parse_path(char *src_path,char *src_file,char *dest_path,char *dest_file,int *is_dir)
-{
-    parse_src_path(src_path,src_file,is_dir);
-    parse_dest_path(dest_path,dest_file,src_file,is_dir);
-}
+//复制一个相对目录下的文件
 void copy_file(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
 {
     int src_file_fd,dest_file_fd;
@@ -104,6 +105,7 @@ void copy_file(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
         Write(dest_file_fd,buf,n);
 }
 
+//复制一个相对目录下的目录（src_file必须是目录）
 void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
 {
     DIR *dp;
@@ -129,12 +131,14 @@ void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
             copy_file(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name);
     } 
 }
+
+//执行复制任务
 void start_copy(char *src_path,char *src_file,char *dest_path,char *dest_file,int is_dir,int flags)
 {
+    int src_dir_fd,dest_dir_fd;
+
     if(is_dir&&(!IS_SET_R(flags)))
         unix_error("cp: -r not specified");
-
-    int src_dir_fd,dest_dir_fd;
 
     src_dir_fd=Open(src_path,O_RDONLY,0);
     dest_dir_fd=Open(dest_path,O_RDONLY,0);
@@ -154,9 +158,13 @@ int main(int argc,char **argv)
 
     umask(0);
 
-    parse_input(argc,argv,src_path,dest_path,&flags);
-    parse_path(src_path,src_file,dest_path,dest_file,&is_dir);
-    start_copy(src_path,src_file,dest_path,dest_file,is_dir,flags);
+    parse_input(argc,argv,src_path,dest_path,&flags);	//解析输入
+
+	is_dir=parse_src_path(src_path,src_file);			//解析源路径
+
+	parse_dest_path(dest_path,dest_file,src_file);		//解析目的路径
+
+	start_copy(src_path,src_file,dest_path,dest_file,is_dir,flags);
 
     exit(0);
 }
