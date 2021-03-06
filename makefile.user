@@ -2,7 +2,7 @@
 CC=gcc
 CC_FLAGS=-I . unix_api.c
 OUTPUT=user/bin/ls \
-	   cp
+	   user/bin/cp
 
 all:$(OUTPUT)
 
@@ -10,6 +10,6 @@ all:$(OUTPUT)
 user/bin/ls:user/lib/ls.c
 	$(CC) $(CC_FLAGS) $^ -o $@
 
-cp:user/lib/cp.c
+user/bin/cp:user/lib/cp.c
 	$(CC) $(CC_FLAGS) $^ -o $@
 

@@ -101,10 +101,10 @@ DIR *Opendir(const char *pathname)
 	return dp;
 }
 
-DIR *Fopendir(int fd)
+DIR *Fdopendir(int fd)
 {
 	DIR *dp;
-	if((dp=Fopendir(fd))==NULL)
+	if((dp=fdopendir(fd))==NULL)
 		unix_error("fopendir error");
 	return dp;
 }

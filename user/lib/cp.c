@@ -117,11 +117,13 @@ void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file,int 
 
         src_file_fd=Openat(src_dir_fd,src_file,O_RDONLY,0);
         dest_file_fd=Openat(dest_dir_fd,dest_file,O_RDONLY,0);
-        dp=Fopendir(src_file_fd);
+        dp=Fdopendir(src_file_fd);
 
         while((dirp=Readdir(dp))!=NULL){
             Fstatat(src_file_fd,dirp->d_name,&st,0); 
             if(S_ISDIR(st.st_mode)){
+                if(strcmp(dirp->d_name,".")==0||strcmp(dirp->d_name,"..")==0)
+                    continue;
                 copy_dir(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name,1);
             }else{
                 copy_file(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name);
@@ -143,6 +145,7 @@ void start_copy(char *src_path,char *src_file,char *dest_path,char *dest_file,in
     dest_dir_fd=Open(dest_path,O_RDONLY,0);
 
     if(is_dir){
+
         copy_dir(src_dir_fd,src_file,dest_dir_fd,dest_file,1);
     }
     else
@@ -162,9 +165,5 @@ int main(int argc,char **argv)
     parse_path(src_path,src_file,dest_path,dest_file,&is_dir);
     start_copy(src_path,src_file,dest_path,dest_file,is_dir,flags);
 
-    printf("src_path:%s\n",src_path);
-    printf("src_file:%s\n",src_file);
-    printf("dest_path:%s\n",dest_path);
-    printf("dest_file:%s\n",dest_file);
-    printf("is_dir:%d\n",is_dir);
+    exit(0);
 }

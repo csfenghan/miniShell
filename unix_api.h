@@ -88,7 +88,7 @@ int Mkdirat(int fd,const char *pathname,mode_t mode);
 int Rmdir(const char *pathname);
 
 DIR *Opendir(const char *pathname);
-DIR *Fopendir(int fd);
+DIR *Fdopendir(int fd);
 struct dirent *Readdir(DIR *dp);
 void Rewinddir(DIR *dp);
 int Closedir(DIR *dp);

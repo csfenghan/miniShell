@@ -6,7 +6,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Fri Mar  5 18:34:35 2021
+# Make data base, printed on Sat Mar  6 08:54:14 2021
 
 # Variables
 
@@ -53,7 +53,7 @@ PATH = /home/fenghan/.vscode-server/bin/622cb03f7e070a9670c94bae1a45d78d7181fbd4
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-e0968651-ec97-4c2e-8f5a-01da2e5ad850.sock
+VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-3ce41d78-bea1-4fb6-b0d7-85264aba5874.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -69,7 +69,7 @@ PWD = /home/fenghan/miniShell
 # environment
 WSL_INTEROP = /run/WSL/10_interop
 # environment
-WT_SESSION = 97abba31-f985-451a-b52c-e94195ddf6aa
+WT_SESSION = d6adf427-76cd-406c-bd96-b7884fdfdf70
 # makefile (from 'Makefile', line 4)
 SOURCE_FILES = main.c unix_api.c
 # environment
@@ -156,8 +156,10 @@ TERM = xterm-256color
 VSCODE_EXTHOST_WILL_SEND_SOCKET = true
 # environment
 WSL_DISTRO_NAME = Ubuntu-20.04
+# environment
+MOTD_SHOWN = update-motd
 # variable set hash-table stats:
-# Load=73/1024=7%, Rehash=0, Collisions=5/105=5%
+# Load=74/1024=7%, Rehash=0, Collisions=5/106=5%
 
 # Pattern-specific Variable Values
 
@@ -165,9 +167,9 @@ WSL_DISTRO_NAME = Ubuntu-20.04
 
 # Directories
 
-# . (device 2064, inode 2098): 20 files, no impossibilities.
+# . (device 2064, inode 2098): 15 files, no impossibilities.
 
-# 20 files, no impossibilities in 1 directories.
+# 15 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -216,32 +218,11 @@ Makefile:
 #  Modification time never checked.
 #  File has not been updated.
 
-unix_api.o: unix_api.c
-#  Implicit rule search has been done.
-#  Implicit/static pattern stem: 'unix_api'
-#  Last modified 2021-03-02 22:32:23.05
-#  File has been updated.
-#  Needs to be updated (-q is set).
-# automatic
-# @ := unix_api.o
-# automatic
-# % := 
-# automatic
-# * := unix_api
-# automatic
-# + := unix_api.c
-# automatic
-# | := 
-# automatic
-# < := unix_api.c
-# automatic
-# ^ := unix_api.c
-# automatic
-# ? := unix_api.c
-# variable set hash-table stats:
-# Load=8/32=25%, Rehash=0, Collisions=2/15=13%
-#  recipe to execute (from 'Makefile', line 13):
-	$(CC) -c $(CC_FLAGES) $^ -o $@
+# Not a target:
+unix_api.o:
+#  Implicit rule search has not been done.
+#  Modification time never checked.
+#  File has not been updated.
 
 clean:
 #  Phony target (prerequisite of .PHONY).
@@ -254,34 +235,44 @@ clean:
 main.o: main.c
 #  Implicit rule search has been done.
 #  Implicit/static pattern stem: 'main'
-#  Last modified 2021-03-02 22:32:22.9
+#  File does not exist.
 #  File has been updated.
-#  Successfully updated.
+#  Needs to be updated (-q is set).
+# automatic
+# @ := main.o
+# automatic
+# % := 
+# automatic
+# * := main
+# automatic
+# + := main.c
+# automatic
+# | := 
+# automatic
+# < := main.c
+# automatic
+# ^ := main.c
+# automatic
+# ? := main.c
+# variable set hash-table stats:
+# Load=8/32=25%, Rehash=0, Collisions=2/15=13%
 #  recipe to execute (from 'Makefile', line 13):
 	$(CC) -c $(CC_FLAGES) $^ -o $@
 
-# Not a target:
-unix_api.c:
-#  Implicit rule search has been done.
-#  Last modified 2021-03-03 15:18:59.59
-#  File has been updated.
-#  Successfully updated.
-
 # files hash-table stats:
-# Load=10/1024=1%, Rehash=0, Collisions=0/31=0%
+# Load=9/1024=1%, Rehash=0, Collisions=0/27=0%
 # VPATH Search Paths
 
 # No 'vpath' search paths.
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 31 / storage = 262 B / avg = 8 B
-# current buf: size = 8162 B / used = 262 B / count = 31 / avg = 8 B
+# strcache buffers: 1 (0) / strings = 27 / storage = 226 B / avg = 8 B
+# current buf: size = 8162 B / used = 226 B / count = 27 / avg = 8 B
 
- 
-# strcache performance: lookups = 46 / hit rate = 32%
+# strcache performance: lookups = 38 / hit rate = 28%
 # hash-table stats:
-# Load=31/8192=0%, Rehash=0, Collisions=1/46=2%
-# Finished Make data base on Fri Mar  5 18:34:35 2021
+# Load=27/8192=0%, Rehash=0, Collisions=1/38=3%
+# Finished Make data base on Sat Mar  6 08:54:14 2021
 
  
