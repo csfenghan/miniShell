@@ -104,35 +104,30 @@ void copy_file(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
         Write(dest_file_fd,buf,n);
 }
 
-void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file,int is_dir)
+void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
 {
+    DIR *dp;
+    struct dirent *dirp;
+    struct stat st;
     int src_file_fd,dest_file_fd;
-    if(is_dir){
-        if(faccessat(dest_dir_fd,dest_file,F_OK,0)!=0)
-            Mkdirat(dest_dir_fd,dest_file,S_IRUSR|S_IWUSR|S_IXUSR);
 
-        DIR *dp;
-        struct dirent *dirp;
-        struct stat st;
+    if(faccessat(dest_dir_fd,dest_file,F_OK,0)!=0)
+        Mkdirat(dest_dir_fd,dest_file,S_IRUSR|S_IWUSR|S_IXUSR);
 
-        src_file_fd=Openat(src_dir_fd,src_file,O_RDONLY,0);
-        dest_file_fd=Openat(dest_dir_fd,dest_file,O_RDONLY,0);
-        dp=Fdopendir(src_file_fd);
+    src_file_fd=Openat(src_dir_fd,src_file,O_RDONLY,0);
+    dest_file_fd=Openat(dest_dir_fd,dest_file,O_RDONLY,0);
+    dp=Fdopendir(src_file_fd);
 
-        while((dirp=Readdir(dp))!=NULL){
-            Fstatat(src_file_fd,dirp->d_name,&st,0); 
-            if(S_ISDIR(st.st_mode)){
-                if(strcmp(dirp->d_name,".")==0||strcmp(dirp->d_name,"..")==0)
-                    continue;
-                copy_dir(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name,1);
-            }else{
-                copy_file(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name);
-            }
-        }   
-    }else{
-        copy_file(src_dir_fd,src_file,dest_dir_fd,dest_file);
-    }
-
+    //默认src_file是目录
+    while((dirp=Readdir(dp))!=NULL){
+        Fstatat(src_file_fd,dirp->d_name,&st,0); 
+        if(S_ISDIR(st.st_mode)){
+            if(strcmp(dirp->d_name,".")==0||strcmp(dirp->d_name,"..")==0)
+                continue;
+            copy_dir(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name);
+        }else
+            copy_file(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name);
+    } 
 }
 void start_copy(char *src_path,char *src_file,char *dest_path,char *dest_file,int is_dir,int flags)
 {
@@ -144,10 +139,8 @@ void start_copy(char *src_path,char *src_file,char *dest_path,char *dest_file,in
     src_dir_fd=Open(src_path,O_RDONLY,0);
     dest_dir_fd=Open(dest_path,O_RDONLY,0);
 
-    if(is_dir){
-
-        copy_dir(src_dir_fd,src_file,dest_dir_fd,dest_file,1);
-    }
+    if(is_dir)
+        copy_dir(src_dir_fd,src_file,dest_dir_fd,dest_file);
     else
         copy_file(src_dir_fd,src_file,dest_dir_fd,dest_file);
 }
