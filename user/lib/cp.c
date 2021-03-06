@@ -103,6 +103,9 @@ void copy_file(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
 
     while((n=Read(src_file_fd,buf,4096))>0)
         Write(dest_file_fd,buf,n);
+
+	close(src_file_fd);
+	close(dest_file_fd);
 }
 
 //复制一个相对目录下的目录（src_file必须是目录）
@@ -130,6 +133,8 @@ void copy_dir(int src_dir_fd,char *src_file,int dest_dir_fd,char *dest_file)
         }else
             copy_file(src_file_fd,dirp->d_name,dest_file_fd,dirp->d_name);
     } 
+	close(src_file_fd);
+	close(dest_file_fd);
 }
 
 //执行复制任务
@@ -147,6 +152,9 @@ void start_copy(char *src_path,char *src_file,char *dest_path,char *dest_file,in
         copy_dir(src_dir_fd,src_file,dest_dir_fd,dest_file);
     else
         copy_file(src_dir_fd,src_file,dest_dir_fd,dest_file);
+
+	close(src_dir_fd);
+	close(dest_dir_fd);
 }
 
 
@@ -165,6 +173,9 @@ int main(int argc,char **argv)
 	parse_dest_path(dest_path,dest_file,src_file);		//解析目的路径
 
 	start_copy(src_path,src_file,dest_path,dest_file,is_dir,flags);
+
+	int fd=open("main.c",O_RDONLY);
+	printf("curr fd:%d\n",fd);
 
     exit(0);
 }
