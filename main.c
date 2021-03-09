@@ -3,6 +3,8 @@
 #define MAXLINE 1024
 #define MAXARGS	64
 
+const char *HOME_PATH="/home/fenghan";
+
 extern char **environ;
 
 //解析输入，以空格为分界，将其划分为数组格式。如果是后台命令则返回1，否则默认前台目录返回0
@@ -39,9 +41,17 @@ int parse_line(char *buf,char **argv)
 int is_builtin_command(char **argv)
 {
 	if(strcmp(argv[0],"cd")==0){
+		if(argv[1]==NULL)
+			Chdir(HOME_PATH);
+		if(argv[2]!=NULL)
+			unix_error("cd: too many arguments");
+		Chdir(argv[1]);
+
 		return 1;	
 	}else if(strcmp(argv[0],"pwd")==0){
-
+		if(argv[1]!=NULL)
+			unix_error("pwd: too many arguments");
+		
 	}else if(strcmp(argv[0],"quit")==0){
 
 	}
@@ -83,7 +93,7 @@ int main(int argc,char *argv[])
 	char cmdline[MAXLINE];	
 
 	while(1){
-		printf("> ");
+		printf("%s>",Getcwd(NULL,0));
 		Fgets(cmdline,MAXLINE,stdin);
 		eval(cmdline);
 	}
