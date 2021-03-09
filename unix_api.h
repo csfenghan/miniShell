@@ -8,6 +8,8 @@
 #include <pwd.h>
 #include <grp.h>
 #include <time.h>
+#include <signal.h>
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -121,5 +123,8 @@ pid_t Fork(void);
 
 pid_t Wait(int *staloc);
 pid_t Waitpid(pid_t pid,int *staloc,int options);
+
+//信号
+void (*Signal(int signo,void (*func)(int)))(int);
 
 #endif

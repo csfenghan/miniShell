@@ -1,4 +1,5 @@
 #include "unix_api.h"
+#include <signal.h>
 
 int fstatat(int fd,const char *pathname,struct stat *buf,int flag);
 int openat(int fd,const char *path,int oflag,...);
@@ -235,5 +236,25 @@ pid_t Waitpid(pid_t pid,int *staloc,int options)
 	return n;
 }
 
+//信号
+void (*Signal(int signo,void (*func)(int)))(int)
+{
+	struct sigaction act,oact;
 
+	act.sa_handler=func;
+	sigemptyset(&act.sa_mask);
+	act.sa_flags=0;
+
+	if(signo==SIGALRM){
+#ifdef SA_INTERRUPT
+		act.sa_flags|=SA_INTERRUPT;
+#endif
+	}else{
+		act.sa_flags|=SA_RESTART;
+	}
+	if(sigaction(signo,&act,&oact)<0)
+		unix_error("Signal error");
+
+	return NULL;
+}
 

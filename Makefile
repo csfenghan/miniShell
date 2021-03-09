@@ -3,7 +3,7 @@ CC_FLAGES=-g
 
 SOURCE_FILES=main.c unix_api.c
 OBJ_FILES=$(patsubst %.c,%.o,$(SOURCE_FILES))
-OUTPUT=miniShell
+OUTPUT=demo
 
 all:$(OBJ_FILES)
 	$(CC) $^ -o $(OUTPUT)
