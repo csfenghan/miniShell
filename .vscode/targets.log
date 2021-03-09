@@ -6,7 +6,7 @@ make all --print-data-base --no-builtin-variables --no-builtin-rules --question
 # This is free software: you are free to change and redistribute it.
 # There is NO WARRANTY, to the extent permitted by law.
 
-# Make data base, printed on Sat Mar  6 08:54:14 2021
+# Make data base, printed on Mon Mar  8 10:44:27 2021
 
 # Variables
 
@@ -53,7 +53,7 @@ PATH = /home/fenghan/.vscode-server/bin/622cb03f7e070a9670c94bae1a45d78d7181fbd4
 # environment
 VSCODE_LOG_STACK = false
 # environment
-VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-3ce41d78-bea1-4fb6-b0d7-85264aba5874.sock
+VSCODE_IPC_HOOK_CLI = /tmp/vscode-ipc-edf635bf-21d6-43a8-88a5-b4292d73bd32.sock
 # default
 .FEATURES := target-specific order-only second-expansion else-if shortest-stem undefine oneshell archives jobserver output-sync check-symlink load
 # environment
@@ -67,9 +67,9 @@ PWD = /home/fenghan/miniShell
 # default
 .LOADED := 
 # environment
-WSL_INTEROP = /run/WSL/10_interop
+WSL_INTEROP = /run/WSL/1831_interop
 # environment
-WT_SESSION = d6adf427-76cd-406c-bd96-b7884fdfdf70
+WT_SESSION = c2e67c4a-8e22-4ed1-9cc8-aa25260ce416
 # makefile (from 'Makefile', line 4)
 SOURCE_FILES = main.c unix_api.c
 # environment
@@ -156,10 +156,8 @@ TERM = xterm-256color
 VSCODE_EXTHOST_WILL_SEND_SOCKET = true
 # environment
 WSL_DISTRO_NAME = Ubuntu-20.04
-# environment
-MOTD_SHOWN = update-motd
 # variable set hash-table stats:
-# Load=74/1024=7%, Rehash=0, Collisions=5/106=5%
+# Load=73/1024=7%, Rehash=0, Collisions=5/105=5%
 
 # Pattern-specific Variable Values
 
@@ -167,9 +165,9 @@ MOTD_SHOWN = update-motd
 
 # Directories
 
-# . (device 2064, inode 2098): 15 files, no impossibilities.
+# . (device 2064, inode 2098): 18 files, no impossibilities.
 
-# 15 files, no impossibilities in 1 directories.
+# 18 files, no impossibilities in 1 directories.
 
 # Implicit Rules
 
@@ -201,7 +199,7 @@ all: main.o unix_api.o
 # Not a target:
 main.c:
 #  Implicit rule search has been done.
-#  Last modified 2021-03-01 10:18:04.2
+#  Last modified 2021-03-08 10:32:24.9021168
 #  File has been updated.
 #  Successfully updated.
 
@@ -235,7 +233,7 @@ clean:
 main.o: main.c
 #  Implicit rule search has been done.
 #  Implicit/static pattern stem: 'main'
-#  File does not exist.
+#  Last modified 2021-03-06 09:30:51.01
 #  File has been updated.
 #  Needs to be updated (-q is set).
 # automatic
@@ -267,12 +265,12 @@ main.o: main.c
 
 # No general ('VPATH' variable) search path.
 
-# strcache buffers: 1 (0) / strings = 27 / storage = 226 B / avg = 8 B
-# current buf: size = 8162 B / used = 226 B / count = 27 / avg = 8 B
+# strcache buffers: 1 (0) / strings = 28 / storage = 240 B / avg = 8 B
+# current buf: size = 8162 B / used = 240 B / count = 28 / avg = 8 B
 
-# strcache performance: lookups = 38 / hit rate = 28%
+# strcache performance: lookups = 41 / hit rate = 31%
 # hash-table stats:
-# Load=27/8192=0%, Rehash=0, Collisions=1/38=3%
-# Finished Make data base on Sat Mar  6 08:54:14 2021
+# Load=28/8192=0%, Rehash=0, Collisions=1/41=2%
+# Finished Make data base on Mon Mar  8 10:44:27 2021
 
  

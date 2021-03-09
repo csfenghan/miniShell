@@ -26,12 +26,8 @@ void init()
  * */
 int get_cmd(char *buf,size_t n)
 {
-	printf("%s",name);
-	printf("%s",curr_path);
-	printf("%%: ");
-
+	printf("%s%s%%",name,curr_path);
 	Fgets(buf,n,stdin);	
-
 	return 1;
 }
 
