@@ -1,6 +1,6 @@
 #负责编译user目录下的源文件
 CC=gcc
-CC_FLAGS=-I . unix_api.c
+CC_FLAGS=-L/home/fenghan/local/unix_lib -lunix_lib -lpthread
 OUTPUT=user/bin/ls \
 	   user/bin/cp
 
@@ -8,8 +8,8 @@ all:$(OUTPUT)
 
 ###########################
 user/bin/ls:user/lib/ls.c
-	$(CC) $(CC_FLAGS) $^ -o $@
+	$(CC) $^ -o $@ $(CC_FLAGS)
 
 user/bin/cp:user/lib/cp.c
-	$(CC) $(CC_FLAGS) $^ -o $@
+	$(CC) $^ -o $@ $(CC_FLAGS)
 

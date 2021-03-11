@@ -1,6 +1,6 @@
 CC=gcc
 CC_COMPILE=-g -I/home/fenghan/local/unix_lib
-CC_LINK=-L/home/fenghan/local/unix_lib -lunix_lib
+CC_LINK=-L/home/fenghan/local/unix_lib -lunix_lib -lpthread
 
 SOURCE_FILES=main.c 
 OBJ_FILES=$(patsubst %.c,%.o,$(SOURCE_FILES))

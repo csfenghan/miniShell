@@ -1,6 +1,5 @@
 #include "unix_api.h"
 
-#define MAXLINE 1024
 #define MAXARGS	64
 
 extern char **environ;
@@ -85,7 +84,7 @@ int main(int argc,char *argv[])
 	char cmdline[MAXLINE];	
 
 	while(1){
-		printf("%s>",Getcwd(NULL,0));
+		printf("%s>",getcwd(NULL,0));
 		Fgets(cmdline,MAXLINE,stdin);
 		eval(cmdline);
 	}
