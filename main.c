@@ -1,6 +1,5 @@
 #include "unix_api.h"
 
-#define MAXLINE 1024
 #define MAXARGS	64
 
 extern char **environ;
