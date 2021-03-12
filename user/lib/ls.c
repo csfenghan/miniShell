@@ -1,4 +1,6 @@
 #include "unix_api.h"
+#include <grp.h>
+#include <pwd.h>
 
 #define MAX_PATH_LEN 64
 
@@ -48,7 +50,8 @@ void __print_line(int fd,const char *pathname,int flags)
 	struct passwd *pw;
 	struct group *gp;
 
-	Fstatat(fd,pathname,&st,0);
+	if(fstatat(fd,pathname,&st,0)<0)
+		unix_error("fstatat error");
 	
 	//是否隐藏文件
 	if(!IS_SET_A(flags)){
@@ -150,12 +153,12 @@ void print_result(const char *dest_path,int flags)
 	DIR *dp;
 	struct dirent *dirp;
 
-	Access(dest_path,F_OK);
+	access(dest_path,F_OK);
 	dp=Opendir(dest_path);
 	fd=Open(dest_path,O_RDONLY,0);
 
 	//格式化打印输出行
-	while((dirp=Readdir(dp))!=NULL)
+	while((dirp=readdir(dp))!=NULL)
 		__print_line(fd,dirp->d_name,flags);	
 	
 	printf("\n");	
