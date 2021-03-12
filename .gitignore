@@ -1,4 +1,4 @@
 *.o
-miniShell
+demo
 bin/*
 .vscode/*
