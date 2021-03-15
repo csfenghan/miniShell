@@ -119,11 +119,9 @@ void sigint_handler(int sig) {
         old_errno = errno;
         pid = get_fg_job(jobs);
         if (pid != 0) {
-                //kill(pid, sig);
-                printf("send sigint signal to pid %d\n", pid);
+                 kill(pid, sig);
         }
         errno = old_errno;
-	sio_puts("int bye byte\n");
 }
 
 void sigtstp_handler(int sig) {
@@ -133,8 +131,7 @@ void sigtstp_handler(int sig) {
         old_errno = errno;
         pid = get_fg_job(jobs);
         if (pid != 0) {
-                //kill(pid, sig);
-                printf("send the tstp signal to pid %d\n", pid);
+                kill(pid, sig);
         }
         errno = old_errno;
         return;
@@ -152,7 +149,6 @@ void sigchld_handler(int sig) {
 
         fg_pid = get_fg_job(jobs);
         pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED);
-	printf("fg_pid:%d,pid:%d\n",fg_pid,pid);
 
         sio_putl(pid);
         if (WIFEXITED(status)) { /*正常退出*/
@@ -223,8 +219,8 @@ int is_buildin_command(char **argv) {
 
                 if (argv[1] == NULL)
                         path = getenv("HOME");
-		else
-			path=argv[1];
+                else
+                        path = argv[1];
                 if (argv[2] != NULL) {
                         fprintf(stderr, "cd: too many arguments\n");
                         return 1;
@@ -267,10 +263,8 @@ void eval(char *cmdline) {
         strcpy(buf, cmdline);
         bg = parse_line(buf, argv);
 
-	if (argv[0] == NULL){
-		printf("fg_pid:%d\n",get_fg_job(jobs));
-		return;
-	}
+        if (argv[0] == NULL) 
+                return;
 
         /* 执行命令 */
         if (!is_buildin_command(argv)) {
@@ -281,6 +275,8 @@ void eval(char *cmdline) {
                 sigprocmask(SIG_BLOCK, &mask_chld, &prev_mask);
                 if ((pid = Fork()) == 0) {
                         sigprocmask(SIG_SETMASK, &prev_mask, NULL);
+                        if (setpgid(0, 0) < 0)
+                                unix_error("setpgid error");
                         if (execve(argv[0], argv, environ) < 0) {
                                 printf("%s: Command not found.\n", argv[0]);
                                 exit(0);
@@ -309,7 +305,7 @@ int main(int argc, char *argv[]) {
         /* 设置信号处理函数 */
         signal(SIGINT, sigint_handler);
         signal(SIGCHLD, sigchld_handler);
-        //signal(SIGTSTP, sigtstp_handler);
+        signal(SIGTSTP, sigtstp_handler);
 
         while (1) {
                 printf("%s>", getcwd(NULL, 0));
