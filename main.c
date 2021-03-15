@@ -82,6 +82,16 @@ void list_jobs(struct job_t *job_list) {
         }
 }
 
+pid_t get_fg_job(struct job_t *job_list) {
+
+        for (int i = 0; i < next_jid; i++)
+                if (job_list[i].state == F_R)
+                        return job_list[i].pid;
+        return 0;
+}
+
+pid_t jid2pid(struct job_t *job_list, pid_t jid) { return job_list[jid].pid; }
+
 pid_t pid2jid(struct job_t *job_list, pid_t pid) {
 
         for (int i = 0; i < next_jid; i++) {
@@ -91,8 +101,6 @@ pid_t pid2jid(struct job_t *job_list, pid_t pid) {
         return -1;
 }
 
-pid_t jid2pid(struct job_t *job_list, pid_t jid) { return job_list[jid].pid; }
-
 struct job_t *pid2job(struct job_t *job_list, pid_t pid) {
         pid_t jid;
 
@@ -101,13 +109,6 @@ struct job_t *pid2job(struct job_t *job_list, pid_t pid) {
         return &job_list[jid - 1];
 }
 
-pid_t get_fg_job(struct job_t *job_list) {
-
-        for (int i = 0; i < next_jid; i++)
-                if (job_list[i].state == F_R)
-                        return job_list[i].pid;
-        return 0;
-}
 /* 作业控制函数end */
 
 /* 信号处理函数start */
@@ -118,11 +119,11 @@ void sigint_handler(int sig) {
         old_errno = errno;
         pid = get_fg_job(jobs);
         if (pid != 0) {
-                kill(pid, sig);
+                //kill(pid, sig);
                 printf("send sigint signal to pid %d\n", pid);
         }
         errno = old_errno;
-	return;
+	sio_puts("int bye byte\n");
 }
 
 void sigtstp_handler(int sig) {
@@ -132,11 +133,11 @@ void sigtstp_handler(int sig) {
         old_errno = errno;
         pid = get_fg_job(jobs);
         if (pid != 0) {
-                kill(pid, sig);
+                //kill(pid, sig);
                 printf("send the tstp signal to pid %d\n", pid);
         }
         errno = old_errno;
-	return;
+        return;
 }
 
 void sigchld_handler(int sig) {
@@ -149,13 +150,14 @@ void sigchld_handler(int sig) {
         sigfillset(&mask_all);
         sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
 
-        fg_pid = get_fg_job(jobs); pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED);
+        fg_pid = get_fg_job(jobs);
+        pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED);
+	printf("fg_pid:%d,pid:%d\n",fg_pid,pid);
 
         sio_putl(pid);
         if (WIFEXITED(status)) { /*正常退出*/
                 if (fg_pid == pid)
                         flags = 1;
-
                 sio_puts(" normally exited\n");
                 del_job(jobs, pid2jid(jobs, pid));
 
@@ -175,7 +177,7 @@ void sigchld_handler(int sig) {
         } else if (WIFCONTINUED(status)) { /* 此处有bug，当作业由B_S变成F_R时*/
                 sio_puts(" continued\n");
                 job = pid2job(jobs, pid);
-                job->state = B_R;
+                job->state = F_R;
         }
 
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
@@ -221,6 +223,8 @@ int is_buildin_command(char **argv) {
 
                 if (argv[1] == NULL)
                         path = getenv("HOME");
+		else
+			path=argv[1];
                 if (argv[2] != NULL) {
                         fprintf(stderr, "cd: too many arguments\n");
                         return 1;
@@ -263,8 +267,10 @@ void eval(char *cmdline) {
         strcpy(buf, cmdline);
         bg = parse_line(buf, argv);
 
-        if (argv[0] == NULL)
-                return;
+	if (argv[0] == NULL){
+		printf("fg_pid:%d\n",get_fg_job(jobs));
+		return;
+	}
 
         /* 执行命令 */
         if (!is_buildin_command(argv)) {
@@ -282,20 +288,18 @@ void eval(char *cmdline) {
                 }
 
                 /* 如果是前台任务，则shell等待 */
+                sigprocmask(SIG_BLOCK, &mask_all, NULL);
                 if (!bg) {
-                        sigprocmask(SIG_BLOCK, &mask_all, NULL);
                         add_job(jobs, pid, F_R, cmdline);
                         flags = 0;
                         while (!flags)
                                 sigsuspend(&prev_mask);
-                        sigprocmask(SIG_SETMASK, &prev_mask, NULL);
 
                 } else {
-                        sigprocmask(SIG_BLOCK, &mask_all, NULL);
                         add_job(jobs, pid, B_R, cmdline);
-                        sigprocmask(SIG_SETMASK, &prev_mask, NULL);
                         printf("[%d]  %d %s\n", pid2jid(jobs, pid), pid, cmdline);
                 }
+                sigprocmask(SIG_SETMASK, &prev_mask, NULL);
         }
 }
 /* Shell基本实现end */
@@ -303,9 +307,9 @@ int main(int argc, char *argv[]) {
         char cmdline[MAXLINE];
 
         /* 设置信号处理函数 */
-        Signal(SIGINT, sigint_handler);
-        Signal(SIGCHLD, sigchld_handler);
-        Signal(SIGTSTP, sigtstp_handler);
+        signal(SIGINT, sigint_handler);
+        signal(SIGCHLD, sigchld_handler);
+        //signal(SIGTSTP, sigtstp_handler);
 
         while (1) {
                 printf("%s>", getcwd(NULL, 0));
