@@ -4,6 +4,7 @@
 
 extern char **environ;
 int flags;
+char *path="bin/";
 
 /* 全局变量end */
 
@@ -302,6 +303,7 @@ int is_buildin_command(char **argv) {
 void eval(char *cmdline) {
         char *argv[MAXARGS];
         char buf[MAXLINE];
+	char cmd_path[MAXLINE];
         int bg;
         pid_t pid;
         sigset_t mask_all, mask_chld, prev_mask;
@@ -325,7 +327,9 @@ void eval(char *cmdline) {
                         sigprocmask(SIG_SETMASK, &prev_mask, NULL);
                         if (setpgid(0, 0) < 0)
                                 unix_error("setpgid error");
-                        if (execve(argv[0], argv, environ) < 0) {
+                        if (execvp(argv[0], argv) < 0) {
+				strcat(cmd_path,path);
+				strcat(cmd_path,argv[0]);
                                 printf("%s: Command not found.\n", argv[0]);
                                 exit(0);
                         }
@@ -356,6 +360,7 @@ int main(int argc, char *argv[]) {
 
         /* 初始化作业控制*/
         init_jobs(jobs);
+	setenv("PATH","/home/fenghan/miniShell/bin",1);
 
         /* 设置信号处理函数 */
         Signal(SIGINT, sigint_handler);
