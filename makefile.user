@@ -1,15 +1,15 @@
 #负责编译user目录下的源文件
 CC=gcc
-CC_FLAGS=-L/home/fenghan/local/unix_lib -lunix_lib -lpthread
-OUTPUT=user/bin/ls \
-	   user/bin/cp
+CC_FLAGS=-lunix_lib -lpthread
+OUTPUT=bin/ls \
+	   bin/cp
 
 all:$(OUTPUT)
 
 ###########################
-user/bin/ls:user/lib/ls.c
+bin/ls:src/ls.c
 	$(CC) $^ -o $@ $(CC_FLAGS)
 
-user/bin/cp:user/lib/cp.c
+bin/cp:src/cp.c
 	$(CC) $^ -o $@ $(CC_FLAGS)
 

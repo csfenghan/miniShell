@@ -26,7 +26,7 @@ flags=[
     '/usr/include/c++/9/bits',
     #搜索当前目录下的文件
     '-isystem',
-    '/home/fenghan/local/unix_lib' 
+    '/home/fenghan/local/include/' 
     ]
  
 SOURCE_EXTENSIONS = [ '.cpp', '.cxx', '.cc', '.c', ]
