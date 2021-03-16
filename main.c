@@ -77,7 +77,8 @@ void list_jobs(struct job_t *job_list) {
                                 state = "State error";
                                 break;
                         }
-                        printf("[%d]  %s  %s\n", job_list[i].jid, state, job_list[i].cmdline);
+                        printf("[%d]  %s  %s", job_list[i].jid, state, job_list[i].cmdline);
+			fflush(stdout);
                 }
         }
 }
@@ -87,7 +88,7 @@ pid_t get_fg_job(struct job_t *job_list) {
         for (int i = 0; i < next_jid; i++)
                 if (job_list[i].state == F_R)
                         return job_list[i].pid;
-        return 0;
+        return -1;
 }
 
 pid_t jid2pid(struct job_t *job_list, pid_t jid) { return job_list[jid].pid; }
@@ -101,13 +102,21 @@ pid_t pid2jid(struct job_t *job_list, pid_t pid) {
         return -1;
 }
 
+struct job_t *jid2job(struct job_t *job_list, pid_t jid) {
+        if (jid <= 0 || jid > MAX_JOBS)
+                return NULL;
+        return &job_list[jid - 1];
+}
+
 struct job_t *pid2job(struct job_t *job_list, pid_t pid) {
         pid_t jid;
 
-        jid = pid2jid(job_list, pid);
-
-        return &job_list[jid - 1];
+        if ((jid = pid2jid(job_list, pid)) != -1)
+                return &job_list[jid - 1];
+        return NULL;
 }
+
+void set_bg(struct job_t *job_list, pid_t pid) {}
 
 /* 作业控制函数end */
 
@@ -118,8 +127,8 @@ void sigint_handler(int sig) {
 
         old_errno = errno;
         pid = get_fg_job(jobs);
-        if (pid != 0) {
-                 kill(pid, sig);
+        if (pid != -1) {
+                kill(pid, sig);
         }
         errno = old_errno;
 }
@@ -130,7 +139,7 @@ void sigtstp_handler(int sig) {
 
         old_errno = errno;
         pid = get_fg_job(jobs);
-        if (pid != 0) {
+        if (pid != -1) {
                 kill(pid, sig);
         }
         errno = old_errno;
@@ -170,10 +179,8 @@ void sigchld_handler(int sig) {
                 job = pid2job(jobs, pid);
                 job->state = B_S;
 
-        } else if (WIFCONTINUED(status)) { /* 此处有bug，当作业由B_S变成F_R时*/
+        } else if (WIFCONTINUED(status)) { /* 只是接受并打印continue信息，jobs的改变由kill发送者更改 */
                 sio_puts(" continued\n");
-                job = pid2job(jobs, pid);
-                job->state = F_R;
         }
 
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
@@ -182,6 +189,38 @@ void sigchld_handler(int sig) {
 /* 信号处理函数end */
 
 /* Shell主体部分start */
+void do_fgbg(char *argv[]) {
+        pid_t jid;
+        sigset_t mask_all, mask_prev;
+        struct job_t *job;
+
+        if (argv[1] == NULL)
+                jid = next_jid;
+        else
+                jid = atoi(argv[1]);
+
+        if (((job = jid2job(jobs, jid)) == NULL) ||
+            job->pid == -1) { /* 如果作业号无效，则报错返回 */
+                fprintf(stderr, "fg: %d:no such job\n", jid);
+                return;
+        }
+
+        /* 发送信号启动进程，前台等待进程 */
+        sigfillset(&mask_all);
+        sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
+        kill(job->pid, SIGCONT); /* 最好是通过返回的SIGCHLD信号来判断是否运行，这样至少图省事*/
+        if (strcmp(argv[0], "fg") == 0) {
+                flags = 0; /* 等待前台作业 */
+                job->state = F_R;
+                while (!flags)
+                        sigsuspend(&mask_prev);
+	}else if(strcmp(argv[0],"bg")==0){
+		job->state=B_R;
+	}
+        sigprocmask(SIG_SETMASK, &mask_prev, NULL);
+}
+
+
 /* 解析输入，以空格为分界，将其划分为数组格式。如果是后台命令则返回1，否则默认前台目录返回0
  */
 int parse_line(char *buf, char **argv) {
@@ -217,10 +256,7 @@ int is_buildin_command(char **argv) {
         if (strcmp(argv[0], "cd") == 0) { /* cd命令实现 */
                 char *path;
 
-                if (argv[1] == NULL)
-                        path = getenv("HOME");
-                else
-                        path = argv[1];
+                path = (argv[1] == NULL) ? getenv("HOME") : argv[1];
                 if (argv[2] != NULL) {
                         fprintf(stderr, "cd: too many arguments\n");
                         return 1;
@@ -230,23 +266,20 @@ int is_buildin_command(char **argv) {
                 return 1;
 
         } else if (strcmp(argv[0], "pwd") == 0) { /* pwd命令实现 */
-                char *path;
-
-                if ((path = getcwd(NULL, 0)) == NULL)
-                        fprintf(stderr, "getcwd error\n");
-                else
-                        printf("%s\n", path);
-
+                printf("%s\n", getcwd(NULL, 0));
                 return 1;
 
         } else if (strcmp(argv[0], "jobs") == 0) { /* jobs命令 */
-
                 list_jobs(jobs);
                 return 1;
 
-        } else if (strcmp(argv[0], "fg") == 0) {
+        } else if (strcmp(argv[0], "fg") == 0) { /* fg命令 */
+                do_fgbg(argv);
+                return 1;
 
         } else if (strcmp(argv[0], "bg") == 0) {
+		do_fgbg(argv);
+		return 1;
         }
 
         return 0;
@@ -263,8 +296,9 @@ void eval(char *cmdline) {
         strcpy(buf, cmdline);
         bg = parse_line(buf, argv);
 
-        if (argv[0] == NULL) 
-                return;
+	if (argv[0] == NULL){
+		return;
+	}
 
         /* 执行命令 */
         if (!is_buildin_command(argv)) {
@@ -299,8 +333,13 @@ void eval(char *cmdline) {
         }
 }
 /* Shell基本实现end */
+
+/* main start */
 int main(int argc, char *argv[]) {
         char cmdline[MAXLINE];
+
+        /* 初始化作业控制*/
+        init_jobs(jobs);
 
         /* 设置信号处理函数 */
         signal(SIGINT, sigint_handler);
@@ -313,3 +352,4 @@ int main(int argc, char *argv[]) {
                 eval(cmdline);
         }
 }
+/* main end */
