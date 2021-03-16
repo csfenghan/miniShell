@@ -116,7 +116,6 @@ struct job_t *pid2job(struct job_t *job_list, pid_t pid) {
         return NULL;
 }
 
-void set_bg(struct job_t *job_list, pid_t pid) {}
 
 /* 作业控制函数end */
 
@@ -224,10 +223,12 @@ void do_fgbg(char *argv[]) {
         sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
         kill(job->pid, SIGCONT); /* 最好是通过返回的SIGCHLD信号来判断是否运行，这样至少图省事*/
         if (strcmp(argv[0], "fg") == 0) {
+		tcsetpgrp(STDIN_FILENO,job->pid);
                 flags = 0; /* 等待前台作业 */
                 job->state = F_R;
                 while (!flags)
                         sigsuspend(&mask_prev);
+		tcsetpgrp(STDIN_FILENO,getpid());
         } else if (strcmp(argv[0], "bg") == 0) {
                 job->state = B_R;
         }
@@ -333,10 +334,12 @@ void eval(char *cmdline) {
                 /* 如果是前台任务，则shell等待 */
                 sigprocmask(SIG_BLOCK, &mask_all, NULL);
                 if (!bg) {
+			tcsetpgrp(STDIN_FILENO,pid);
                         add_job(jobs, pid, F_R, cmdline);
                         flags = 0;
                         while (!flags)
                                 sigsuspend(&prev_mask);
+			tcsetpgrp(STDIN_FILENO,getpid());
 
                 } else {
                         add_job(jobs, pid, B_R, cmdline);
