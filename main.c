@@ -78,7 +78,7 @@ void list_jobs(struct job_t *job_list) {
                                 break;
                         }
                         printf("[%d]  %s  %s", job_list[i].jid, state, job_list[i].cmdline);
-			fflush(stdout);
+                        fflush(stdout);
                 }
         }
 }
@@ -146,6 +146,19 @@ void sigtstp_handler(int sig) {
         return;
 }
 
+void sigquit_handler(int sig){
+	int old_errno;
+	pid_t pid;
+
+	old_errno=errno;
+	pid=get_fg_job(jobs);
+	if(pid!=-1){
+		kill(pid,sig);
+	}
+	errno=old_errno;
+	return;
+}
+
 void sigchld_handler(int sig) {
         pid_t pid, fg_pid;
         struct job_t *job;
@@ -179,7 +192,8 @@ void sigchld_handler(int sig) {
                 job = pid2job(jobs, pid);
                 job->state = B_S;
 
-        } else if (WIFCONTINUED(status)) { /* 只是接受并打印continue信息，jobs的改变由kill发送者更改 */
+        } else if (WIFCONTINUED(
+                       status)) { /* 只是接受并打印continue信息，jobs的改变由kill发送者更改 */
                 sio_puts(" continued\n");
         }
 
@@ -214,12 +228,11 @@ void do_fgbg(char *argv[]) {
                 job->state = F_R;
                 while (!flags)
                         sigsuspend(&mask_prev);
-	}else if(strcmp(argv[0],"bg")==0){
-		job->state=B_R;
-	}
+        } else if (strcmp(argv[0], "bg") == 0) {
+                job->state = B_R;
+        }
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
 }
-
 
 /* 解析输入，以空格为分界，将其划分为数组格式。如果是后台命令则返回1，否则默认前台目录返回0
  */
@@ -278,8 +291,8 @@ int is_buildin_command(char **argv) {
                 return 1;
 
         } else if (strcmp(argv[0], "bg") == 0) {
-		do_fgbg(argv);
-		return 1;
+                do_fgbg(argv);
+                return 1;
         }
 
         return 0;
@@ -296,9 +309,9 @@ void eval(char *cmdline) {
         strcpy(buf, cmdline);
         bg = parse_line(buf, argv);
 
-	if (argv[0] == NULL){
-		return;
-	}
+        if (argv[0] == NULL) {
+                return;
+        }
 
         /* 执行命令 */
         if (!is_buildin_command(argv)) {
@@ -342,13 +355,17 @@ int main(int argc, char *argv[]) {
         init_jobs(jobs);
 
         /* 设置信号处理函数 */
-        signal(SIGINT, sigint_handler);
-        signal(SIGCHLD, sigchld_handler);
-        signal(SIGTSTP, sigtstp_handler);
+        Signal(SIGINT, sigint_handler);
+        Signal(SIGTSTP, sigtstp_handler);
+	Signal(SIGQUIT,sigquit_handler);
+        Signal(SIGCHLD, sigchld_handler);
 
         while (1) {
                 printf("%s>", getcwd(NULL, 0));
+		fflush(stdout);
                 Fgets(cmdline, MAXLINE, stdin);
+		if(feof(stdin))
+			exit(0);
                 eval(cmdline);
         }
 }
