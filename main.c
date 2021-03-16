@@ -4,7 +4,6 @@
 
 extern char **environ;
 int flags;
-char *path="bin/";
 
 /* 全局变量end */
 
@@ -303,7 +302,6 @@ int is_buildin_command(char **argv) {
 void eval(char *cmdline) {
         char *argv[MAXARGS];
         char buf[MAXLINE];
-	char cmd_path[MAXLINE];
         int bg;
         pid_t pid;
         sigset_t mask_all, mask_chld, prev_mask;
@@ -328,8 +326,6 @@ void eval(char *cmdline) {
                         if (setpgid(0, 0) < 0)
                                 unix_error("setpgid error");
                         if (execvp(argv[0], argv) < 0) {
-				strcat(cmd_path,path);
-				strcat(cmd_path,argv[0]);
                                 printf("%s: Command not found.\n", argv[0]);
                                 exit(0);
                         }
