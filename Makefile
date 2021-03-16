@@ -8,7 +8,7 @@ OUTPUT=demo
 
 all:$(OBJ_FILES)
 	$(CC) $^ -o $(OUTPUT) $(CC_LINK) 
-	make -f makefile.user
+	#make -f makefile.user
 
 %.o:%.c
 	$(CC) -c $(CC_COMPILE) $^ -o $@
