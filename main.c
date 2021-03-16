@@ -1,7 +1,5 @@
 #include "unix_api.h"
 
-#define MAXARGS	64
-
 extern char **environ;
 
 //解析输入，以空格为分界，将其划分为数组格式。如果是后台命令则返回1，否则默认前台目录返回0
