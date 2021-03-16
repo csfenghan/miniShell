@@ -171,29 +171,24 @@ void sigchld_handler(int sig) {
         fg_pid = get_fg_job(jobs);
         pid = waitpid(-1, &status, WNOHANG | WUNTRACED | WCONTINUED);
 
-        sio_putl(pid);
         if (WIFEXITED(status)) { /*正常退出*/
                 if (fg_pid == pid)
                         flags = 1;
-                sio_puts(" normally exited\n");
                 del_job(jobs, pid2jid(jobs, pid));
 
         } else if (WIFSIGNALED(status)) { /*被信号杀死*/
                 if (fg_pid == pid)
                         flags = 1;
-                sio_puts(" killed by signal\n");
                 del_job(jobs, pid2jid(jobs, pid));
 
         } else if (WIFSTOPPED(status)) { /*进程停止*/
                 if (fg_pid == pid)
                         flags = 1;
-                sio_puts(" stopped\n");
                 job = pid2job(jobs, pid);
                 job->state = B_S;
 
         } else if (WIFCONTINUED(
                        status)) { /* 只是接受并打印continue信息，jobs的改变由kill发送者更改 */
-                sio_puts(" continued\n");
         }
 
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
