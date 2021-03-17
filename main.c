@@ -116,7 +116,6 @@ struct job_t *pid2job(struct job_t *job_list, pid_t pid) {
         return NULL;
 }
 
-
 /* 作业控制函数end */
 
 /* 信号处理函数start */
@@ -145,17 +144,17 @@ void sigtstp_handler(int sig) {
         return;
 }
 
-void sigquit_handler(int sig){
-	int old_errno;
-	pid_t pid;
+void sigquit_handler(int sig) {
+        int old_errno;
+        pid_t pid;
 
-	old_errno=errno;
-	pid=get_fg_job(jobs);
-	if(pid!=-1){
-		kill(pid,sig);
-	}
-	errno=old_errno;
-	return;
+        old_errno = errno;
+        pid = get_fg_job(jobs);
+        if (pid != -1) {
+                kill(pid, sig);
+        }
+        errno = old_errno;
+        return;
 }
 
 void sigchld_handler(int sig) {
@@ -187,8 +186,7 @@ void sigchld_handler(int sig) {
                 job = pid2job(jobs, pid);
                 job->state = B_S;
 
-        } else if (WIFCONTINUED(
-                       status)) { /* 只是接受并打印continue信息，jobs的改变由kill发送者更改 */
+        } else if (WIFCONTINUED(status)) { /* 接受并打印continue信息，kill发送者负责更改jobs */
         }
 
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
@@ -218,12 +216,12 @@ void do_fgbg(char *argv[]) {
         sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
         kill(job->pid, SIGCONT); /* 最好是通过返回的SIGCHLD信号来判断是否运行，这样至少图省事*/
         if (strcmp(argv[0], "fg") == 0) {
-		tcsetpgrp(STDIN_FILENO,job->pid);
+                tcsetpgrp(STDIN_FILENO, job->pid);
                 flags = 0; /* 等待前台作业 */
                 job->state = F_R;
                 while (!flags)
                         sigsuspend(&mask_prev);
-		tcsetpgrp(STDIN_FILENO,getpid());
+                tcsetpgrp(STDIN_FILENO, getpid());
         } else if (strcmp(argv[0], "bg") == 0) {
                 job->state = B_R;
         }
@@ -329,12 +327,12 @@ void eval(char *cmdline) {
                 /* 如果是前台任务，则shell等待 */
                 sigprocmask(SIG_BLOCK, &mask_all, NULL);
                 if (!bg) {
-			tcsetpgrp(STDIN_FILENO,pid);
+                        tcsetpgrp(STDIN_FILENO, pid);
                         add_job(jobs, pid, F_R, cmdline);
                         flags = 0;
                         while (!flags)
                                 sigsuspend(&prev_mask);
-			tcsetpgrp(STDIN_FILENO,getpid());
+                        tcsetpgrp(STDIN_FILENO, getpid());
 
                 } else {
                         add_job(jobs, pid, B_R, cmdline);
@@ -351,20 +349,20 @@ int main(int argc, char *argv[]) {
 
         /* 初始化作业控制*/
         init_jobs(jobs);
-	setenv("PATH","/home/fenghan/miniShell/bin",1);
+        setenv("PATH", "/home/fenghan/miniShell/bin", 1);
 
         /* 设置信号处理函数 */
         Signal(SIGINT, sigint_handler);
         Signal(SIGTSTP, sigtstp_handler);
-	Signal(SIGQUIT,sigquit_handler);
+        Signal(SIGQUIT, sigquit_handler);
         Signal(SIGCHLD, sigchld_handler);
 
         while (1) {
                 printf("%s>", getcwd(NULL, 0));
-		fflush(stdout);
+                fflush(stdout);
                 Fgets(cmdline, MAXLINE, stdin);
-		if(feof(stdin))
-			exit(0);
+                if (feof(stdin))
+                        exit(0);
                 eval(cmdline);
         }
 }
