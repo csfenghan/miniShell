@@ -1,12 +1,11 @@
-#include "mini_shell.h"
+#include "parser_args.h"
 #include <unix_api.h>
 
-/* 解析输入，以空格为分界，将其划分为数组格式。如果是后台命令则返回1，否则默认前台目录返回0
- */
+//parser the input,if command is the background,return 1,else reurn 0
 int parse_line(char *buf, char **argv) {
         char *delim;
         int argc;
-        int bg = 0; //是否是后台任务
+        int bg = 0; 
 
         buf[strlen(buf) - 1] = ' ';
         while (*buf && (*buf == ' '))
@@ -25,48 +24,38 @@ int parse_line(char *buf, char **argv) {
         if (argc == 0)
                 return 1;
 
-        if ((bg = (*argv[argc - 1] == '&')) != 0) //是否是后台任务
+        if ((bg = (*argv[argc - 1] == '&')) != 0) 
                 argv[--argc] = NULL;
 
         return bg;
 }
 /**********************************************************************
- *	新版本
+ *	new version
  *********************************************************************/
+// free the memory of struct cmd
+static void destroy_cmd(struct cmd *cmd) {
+        free(cmd->argv);
+        free(cmd);
+}
 
-// job的类型
-enum { CMD_JOB_BG= 1,
-       CMD_JOB_FG= 2,
-};
-
-// 命令的类型
-enum { CMD_POSITION_BUILTIN = 1, CMD_POSITION_EXTERN = 2, CMD_POSITION_OTHER = 3 };
-
-struct arg_list_node {};
-
-struct cmd {
-        int argc;     //命令的长度
-        char **argv;  //命令
-        int job_type; //是否是后台任务
-        int cmd_type; //是根据目录来进行执行命令，还是shell内置或bin中的命令
-};
-
-// 根据输入的buf来解析命令的格式，并动态分配内存
-// 想要动态的管理内存，可以使用链表
-struct cmd *create_cmd(char *buf) {
+// parser the input,return pointer of struct cmd
+static struct cmd *create_cmd(char *buf) {
         struct cmd *result;
         char *delim;
         char *ptr;
 
+        if (strlen(buf) == 0)
+                return NULL;
+
         result = Malloc(sizeof(struct cmd));
 
-        // 最后一个是换行符，将其改成空格以方便解析
+	// replace '\n' with ' ' to facilitate parsing
         ptr = buf;
         buf[strlen(ptr) - 1] = ' ';
         while (*ptr && (*ptr == ' '))
                 ptr++;
 
-        // 计算参数的个数，为result->argv分配内存
+	// calculate the numbe of args,and malloc the memory for result->argv
         while ((delim = strchr(ptr, ' '))) {
                 result->argc++;
                 ptr = delim + 1;
@@ -75,7 +64,7 @@ struct cmd *create_cmd(char *buf) {
         }
         result->argv = Malloc(sizeof(char *) * result->argc);
 
-        // 挨个解析命令，存入result->argv中
+	// parse the input,save the results to result->argv
         ptr = buf;
         for (int i = 0; i < result->argc; i++) {
                 delim = strchr(ptr, ' ');
@@ -86,31 +75,105 @@ struct cmd *create_cmd(char *buf) {
                         ptr++;
         }
 
-	if(result->argc==0)
-		return result;
-
-	// 解析命令的位置
-	char *front=result->argv[0];
-	if(strlen(front)>2 && front[0]=='.' && front[1]=='/')
-		result->cmd_type=CMD_POSITION_EXTERN;
-	else
-		result->cmd_type=CMD_POSITION_OTHER;
-
-	// 解析job的类型
-        char *back = result->argv[result->argc - 1];
-        if (back[strlen(back) - 1] == '&') {
-                result->job_type = CMD_JOB_BG;
-                back[strlen(back) - 1] = '\0';
-        } else {
-                result->job_type = CMD_JOB_FG;
+        if (result->argc == 0) {
+                destroy_cmd(result);
+                return NULL;
         }
 
-	return result;
+	// judge the command format is ./cmd or cmd
+        char *front = result->argv[0];
+        if (strlen(front) > 2 && front[0] == '.' && front[1] == '/')
+                result->cmd_type = CMD_POSITION_EXTERN;
+        else
+                result->cmd_type = CMD_POSITION_OTHER;
+
+        return result;
 }
 
-int destroy_cmd(struct cmd *cmd) {
-	free(cmd->argv);
-	free(cmd);
+// release the cmd_list
+void destroy_cmd_list(struct cmd_list *cmd_list) {
+        struct cmd *curr;
 
-	return 1;
+        while (cmd_list->head != NULL) {
+                curr = cmd_list->head->next;
+                destroy_cmd(cmd_list->head);
+                cmd_list->head = curr;
+        }
+        free(cmd_list);
+}
+
+// parse the input
+struct cmd_list *create_cmd_list(char *buf) {
+        // find the special characters:such as |,<,>,&&
+        struct cmd *curr;
+        struct cmd_list *result;
+        char *left, *right;
+
+        result = Malloc(sizeof(struct cmd_list));
+        result->head = NULL;
+        result->tail = NULL;
+        result->len = 0;
+
+        left = buf;
+        right = buf;
+        while (*right) {
+                // determine if there are special characters
+                if ((*right == '|') || (*right == '<') || (*right == '>') ||
+                    ((*right == '&') && (*(right + 1) == '&'))) {
+
+                        char c = *right;
+
+                        *right = '\0';
+                        if ((curr = create_cmd(left)) == NULL) {
+                                destroy_cmd_list(result);
+                                return NULL;
+                        }
+
+			// select the type according to the character
+                        switch (c) {
+                        case '|':
+                                curr->special_type = CMD_SPECIAL_PIPE;
+                                break;
+                        case '<':
+                                curr->special_type = CMD_SPECIAL_LEFT_REDIR;
+                                break;
+                        case '>':
+                                curr->special_type = CMD_SPECIAL_RIGHT_REDIR;
+                                break;
+                        case '&': 
+                                curr->special_type = CMD_SPECIAL_AND;
+                                right++;
+                                break;
+                        }
+
+                        // inserting a list node
+                        curr->next = NULL;
+                        if (result->head == NULL) {
+                                result->head = curr;
+                                result->tail = curr;
+                        }
+                        result->tail->next = curr;
+                        result->tail = curr;
+                        result->len++;
+
+                        left = ++right;
+                        continue;
+                }
+                right++;
+        }
+        // parser again when end the loop
+        result->len++;
+        if ((curr = create_cmd(left))==NULL) {
+                destroy_cmd_list(result);
+                return NULL;
+        }
+        curr->next = NULL;
+        if (result->head == NULL) {
+                result->head = curr;
+                result->tail = curr;
+        }
+        result->tail->next = curr;
+        result->tail = curr;
+
+        return result;
 }
