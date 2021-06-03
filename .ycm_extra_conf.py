@@ -19,14 +19,13 @@ flags=[
     '-I',
     '/usr/local/include/',
     '-isystem',
-    '/usr/lib/gcc/x86_64-linux-gnu/9/include',
+    '/usr/lib/gcc/x86_64-linux-gnu/8/include',
     '-isystem',
     '/usr/include/x86_64-linux-gnu',
     '-isystem'
-    '/usr/include/c++/9',
+    '/usr/include/c++/8',
     '-isystem',
-    '/usr/include/c++/9/bits',
-    #搜索当前目录下的文件
+    '/usr/include/c++/8/bits',
     ]
  
 SOURCE_EXTENSIONS = [ '.cpp', '.cxx', '.cc', '.c', ]

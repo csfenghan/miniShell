@@ -1,19 +1,24 @@
-CC=gcc
-CC_COMPILE=-g 
-CC_LINK= -lunix_lib -lpthread
+include makefile.defines
 
-SOURCE_FILES=main.c 
-OBJ_FILES=$(patsubst %.c,%.o,$(SOURCE_FILES))
-OUTPUT=demo
+###########################################
+#	构建过程
+###########################################
 
-all:$(OBJ_FILES)
-	$(CC) $^ -o $(OUTPUT) $(CC_LINK) 
-	#make -f makefile.user
+all:$(OUTPUT)
+	@echo "successfully build"
+
+
+$(OUTPUT):$(OBJ_FILES)
+	$(V) $(LD) $^ -o $@ $(LD_FLAGS)
 
 %.o:%.c
-	$(CC) -c $(CC_COMPILE) $^ -o $@
-
-#####################################
-.PHONY:clean 
+	$(V) $(CC) -c  $^ -o $@ $(CC_FLAGS)
+#############################################
+#	伪指令
+############################################
+.PHONY:clean run
 clean:
 	rm $(OBJ_FILES) $(OUTPUT)
+
+.PHONY:
+	./$(OUTPUT)

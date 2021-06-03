@@ -1,0 +1,13 @@
+# 这个文件定义了构建过程使用的工具参数
+
+V=@
+CC=gcc
+LD=gcc
+CC_FLAGS=-g -Wall
+LD_FLAGS= -lunix_lib -lpthread
+
+SRC_FILES=main.c \
+	job_manger.c \
+	signal_handler.c
+OBJ_FILES=$(patsubst %.c,%.o,$(SRC_FILES))
+OUTPUT=miniShell
