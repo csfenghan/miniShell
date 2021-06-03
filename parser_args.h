@@ -9,9 +9,10 @@ enum job_type {
 
 // 命令的类型
 enum cmd_type {
-        CMD_POSITION_EXEC = 0,
-        CMD_POSITION_BUILTIN = 1,
-        CMD_POSITION_EXTERN = 2,
+        CMD_POSITION_UNKNOW= 0,
+        CMD_POSITION_EXEC = 1,
+        CMD_POSITION_BUILTIN = 2,
+        CMD_POSITION_EXTERN = 3,
 };
 
 // 特殊类型（如重定向、管道等）

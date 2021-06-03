@@ -48,18 +48,23 @@ static struct cmd *create_cmd(char *buf) {
                 return NULL;
 
         result = Malloc(sizeof(struct cmd));
+        result->argc = 0;
+        result->next = NULL;
+        result->cmd_type = CMD_POSITION_UNKNOW;
+        result->special_type = CMD_SPECIAL_DEFAULT;
 
         // replace '\n' with ' ' to facilitate parsing
         ptr = buf;
         buf[strlen(ptr) - 1] = ' ';
-        while (*ptr && (*ptr == ' '))
-                ptr++;
+        while (*buf == ' ')
+                buf++;
 
         // calculate the numbe of args,and malloc the memory for result->argv
+        ptr = buf;
         while ((delim = strchr(ptr, ' '))) {
                 result->argc++;
                 ptr = delim + 1;
-                while (*ptr && (*ptr == ' '))
+                while (*ptr == ' ')
                         ptr++;
         }
         result->argv = Malloc(sizeof(char *) * result->argc);
@@ -71,7 +76,7 @@ static struct cmd *create_cmd(char *buf) {
                 result->argv[i] = ptr;
                 *delim = '\0';
                 ptr = delim + 1;
-                while (*ptr && (*ptr == ' '))
+                while (*ptr == ' ')
                         ptr++;
         }
 
