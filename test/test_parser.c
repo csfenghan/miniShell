@@ -1,4 +1,4 @@
-#include "parser_args.h"
+#include "../parser_args.h"
 #include <stdio.h>
 #include <unistd.h>
 
@@ -44,6 +44,8 @@ int main() {
                                         printf("    special type:right redir\n");
                                 else if (cmd->special_type == CMD_SPECIAL_AND)
                                         printf("    special type:and\n");
+				else
+					printf("    special type:def\n");
 
                                 printf("        ");
                                 for (int i = 0; i < cmd->argc; i++) {

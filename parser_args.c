@@ -1,11 +1,11 @@
 #include "parser_args.h"
 #include <unix_api.h>
 
-//parser the input,if command is the background,return 1,else reurn 0
+// parser the input,if command is the background,return 1,else reurn 0
 int parse_line(char *buf, char **argv) {
         char *delim;
         int argc;
-        int bg = 0; 
+        int bg = 0;
 
         buf[strlen(buf) - 1] = ' ';
         while (*buf && (*buf == ' '))
@@ -24,7 +24,7 @@ int parse_line(char *buf, char **argv) {
         if (argc == 0)
                 return 1;
 
-        if ((bg = (*argv[argc - 1] == '&')) != 0) 
+        if ((bg = (*argv[argc - 1] == '&')) != 0)
                 argv[--argc] = NULL;
 
         return bg;
@@ -49,13 +49,13 @@ static struct cmd *create_cmd(char *buf) {
 
         result = Malloc(sizeof(struct cmd));
 
-	// replace '\n' with ' ' to facilitate parsing
+        // replace '\n' with ' ' to facilitate parsing
         ptr = buf;
         buf[strlen(ptr) - 1] = ' ';
         while (*ptr && (*ptr == ' '))
                 ptr++;
 
-	// calculate the numbe of args,and malloc the memory for result->argv
+        // calculate the numbe of args,and malloc the memory for result->argv
         while ((delim = strchr(ptr, ' '))) {
                 result->argc++;
                 ptr = delim + 1;
@@ -64,7 +64,7 @@ static struct cmd *create_cmd(char *buf) {
         }
         result->argv = Malloc(sizeof(char *) * result->argc);
 
-	// parse the input,save the results to result->argv
+        // parse the input,save the results to result->argv
         ptr = buf;
         for (int i = 0; i < result->argc; i++) {
                 delim = strchr(ptr, ' ');
@@ -80,7 +80,7 @@ static struct cmd *create_cmd(char *buf) {
                 return NULL;
         }
 
-	// judge the command format is ./cmd or cmd
+        // judge the command format is ./cmd or cmd
         char *front = result->argv[0];
         if (strlen(front) > 2 && front[0] == '.' && front[1] == '/')
                 result->cmd_type = CMD_POSITION_EXTERN;
@@ -129,7 +129,7 @@ struct cmd_list *create_cmd_list(char *buf) {
                                 return NULL;
                         }
 
-			// select the type according to the character
+                        // select the type according to the character
                         switch (c) {
                         case '|':
                                 curr->special_type = CMD_SPECIAL_PIPE;
@@ -140,7 +140,7 @@ struct cmd_list *create_cmd_list(char *buf) {
                         case '>':
                                 curr->special_type = CMD_SPECIAL_RIGHT_REDIR;
                                 break;
-                        case '&': 
+                        case '&':
                                 curr->special_type = CMD_SPECIAL_AND;
                                 right++;
                                 break;
@@ -151,9 +151,10 @@ struct cmd_list *create_cmd_list(char *buf) {
                         if (result->head == NULL) {
                                 result->head = curr;
                                 result->tail = curr;
+                        } else {
+                                result->tail->next = curr;
+                                result->tail = curr;
                         }
-                        result->tail->next = curr;
-                        result->tail = curr;
                         result->len++;
 
                         left = ++right;
@@ -163,7 +164,7 @@ struct cmd_list *create_cmd_list(char *buf) {
         }
         // parser again when end the loop
         result->len++;
-        if ((curr = create_cmd(left))==NULL) {
+        if ((curr = create_cmd(left)) == NULL) {
                 destroy_cmd_list(result);
                 return NULL;
         }
@@ -171,9 +172,10 @@ struct cmd_list *create_cmd_list(char *buf) {
         if (result->head == NULL) {
                 result->head = curr;
                 result->tail = curr;
+        } else {
+                result->tail->next = curr;
+                result->tail = curr;
         }
-        result->tail->next = curr;
-        result->tail = curr;
 
         return result;
 }
