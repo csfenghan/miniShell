@@ -38,6 +38,7 @@ int is_buildin_command(char **argv) {
         return 0;
 }
 
+//根据cmdline执行对应的命令
 void eval(char *cmdline) {
         char *argv[MAXARGS];
         char buf[MAXLINE];

@@ -22,6 +22,7 @@ int flags;
 extern char **environ;
 struct job_t jobs[MAX_JOBS];
 
+
 /* 信号处理函数start */
 void sigint_handler(int sig);
 void sigtstp_handler(int sig);
