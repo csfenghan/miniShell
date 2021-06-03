@@ -8,6 +8,7 @@ LD_FLAGS= -lunix_lib -lpthread
 
 SRC_FILES=main.c \
 	job_manger.c \
-	signal_handler.c
+	signal_handler.c \
+	parser_args.c
 OBJ_FILES=$(patsubst %.c,%.o,$(SRC_FILES))
 OUTPUT=miniShell
