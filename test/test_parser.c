@@ -1,4 +1,5 @@
 #include "../parser_args.h"
+#include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -11,6 +12,8 @@ int main() {
                 printf(">: ");
                 fflush(stdout);
                 fgets(buf, 1024, stdin);
+		if(feof(stdin))
+			break;
 
                 if ((cmd_list = create_cmd_list(buf)) == NULL) {
                         fprintf(stderr, "input format is error\n");
@@ -19,41 +22,41 @@ int main() {
                 if (cmd_list->head != NULL) {
                         printf("command count: %d\n", cmd_list->len);
                         // print the job type
-                        if (cmd_list->job_type == CMD_JOB_BG) {
+                        if (cmd_list->job_type == CMD_JOB_BG)
                                 printf("job type: background job\n");
-                        } else if (cmd_list->job_type == CMD_JOB_FG) {
+                        else if (cmd_list->job_type == CMD_JOB_FG)
                                 printf("job type: forground job\n");
-                        } else {
+                        else
                                 printf("job type: unknow!\n");
-                        }
 
                         // print cmd data
                         for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
-                                if (cmd->cmd_type == CMD_POSITION_OTHER)
-                                        printf("    command type:other command\n");
+                                printf("\n");
+                                if (cmd->cmd_type == CMD_POSITION_EXEC)
+                                        printf("command type:exec command\n");
                                 else if (cmd->cmd_type == CMD_POSITION_EXTERN)
-                                        printf("    command type:extern command\n");
+                                        printf("command type:extern command\n");
                                 else if (cmd->cmd_type == CMD_POSITION_BUILTIN)
-                                        printf("    command type:builtin command\n");
+                                        printf("command type:builtin command\n");
 
                                 if (cmd->special_type == CMD_SPECIAL_PIPE)
-                                        printf("    special type:pipe\n");
+                                        printf("special type:pipe\n");
                                 else if (cmd->special_type == CMD_SPECIAL_LEFT_REDIR)
-                                        printf("    special type:left redir\n");
+                                        printf("special type:left redir\n");
                                 else if (cmd->special_type == CMD_SPECIAL_RIGHT_REDIR)
-                                        printf("    special type:right redir\n");
+                                        printf("special type:right redir\n");
                                 else if (cmd->special_type == CMD_SPECIAL_AND)
-                                        printf("    special type:and\n");
-				else
-					printf("    special type:def\n");
+                                        printf("special type:and\n");
+                                else
+                                        printf("special type:default\n");
 
-                                printf("        ");
                                 for (int i = 0; i < cmd->argc; i++) {
                                         printf("arg%d: %s  ", i, cmd->argv[i]);
                                 }
                                 printf("\n");
                         }
-			destroy_cmd_list(cmd_list);
+                        destroy_cmd_list(cmd_list);
                 }
         }
+	exit(0);
 }

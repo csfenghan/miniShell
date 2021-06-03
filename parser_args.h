@@ -3,12 +3,16 @@
 
 // job的类型
 enum job_type {
+        CMD_JOB_FG = 0,
         CMD_JOB_BG = 1,
-        CMD_JOB_FG = 2,
 };
 
 // 命令的类型
-enum cmd_type { CMD_POSITION_BUILTIN = 1, CMD_POSITION_EXTERN = 2, CMD_POSITION_OTHER = 3 };
+enum cmd_type {
+        CMD_POSITION_EXEC = 0,
+        CMD_POSITION_BUILTIN = 1,
+        CMD_POSITION_EXTERN = 2,
+};
 
 // 特殊类型（如重定向、管道等）
 enum special_type {
@@ -18,8 +22,6 @@ enum special_type {
         CMD_SPECIAL_PIPE = 3,
         CMD_SPECIAL_AND = 4,
 };
-
-struct arg_list_node {};
 
 struct cmd {
         int argc;               //命令的长度

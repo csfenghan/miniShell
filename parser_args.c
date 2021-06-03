@@ -83,9 +83,9 @@ static struct cmd *create_cmd(char *buf) {
         // judge the command format is ./cmd or cmd
         char *front = result->argv[0];
         if (strlen(front) > 2 && front[0] == '.' && front[1] == '/')
-                result->cmd_type = CMD_POSITION_EXTERN;
+                result->cmd_type = CMD_POSITION_EXEC;
         else
-                result->cmd_type = CMD_POSITION_OTHER;
+                result->cmd_type = CMD_POSITION_BUILTIN;
 
         return result;
 }
@@ -169,6 +169,7 @@ struct cmd_list *create_cmd_list(char *buf) {
                 return NULL;
         }
         curr->next = NULL;
+
         if (result->head == NULL) {
                 result->head = curr;
                 result->tail = curr;
@@ -176,6 +177,16 @@ struct cmd_list *create_cmd_list(char *buf) {
                 result->tail->next = curr;
                 result->tail = curr;
         }
+        char *back = curr->argv[curr->argc - 1];
+        // background job or forground job
+        if (back[strlen(back) - 1] == '&') {
+                result->job_type = CMD_JOB_BG;
+                back[strlen(back) - 1] = '\0';
+                if (strlen(back) == 0) {
+                        curr->argc--;
+                }
+        } else
+                result->job_type = CMD_JOB_FG;
 
         return result;
 }
