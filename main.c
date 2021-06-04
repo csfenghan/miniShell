@@ -1,5 +1,3 @@
-// shell的主体部分
-
 #include "builtin_command.h"
 #include "job_manger.h"
 #include "parser_args.h"
@@ -35,7 +33,7 @@ void exec_cmd(struct cmd_list *cmd_list) {
                         case CMD_SPECIAL_PIPE:
                                 // if the type is CMD_SPECIAL_PIPE,it means that pipfd[2] has been
                                 // initialized,	so it can be used directly
-                                dup2(STDIN_FILENO, pipfd[0]);
+                                dup2(pipfd[0], STDIN_FILENO);
                                 close(pipfd[0]);
                         default:
                                 break;
@@ -50,7 +48,7 @@ void exec_cmd(struct cmd_list *cmd_list) {
                                 // if the type is pipe,then initialize the pipfd[2] and redirect the
                                 // output
                                 pipe(pipfd);
-                                dup2(STDOUT_FILENO, pipfd[1]);
+                                dup2(pipfd[1], STDOUT_FILENO);
                                 close(pipfd[1]);
                                 break;
                         case CMD_SPECIAL_LEFT_REDIR:
@@ -61,25 +59,28 @@ void exec_cmd(struct cmd_list *cmd_list) {
 
                         // exec the command after the configuration
                         exec_builtin_command(cmd->argv[0], cmd->argc, cmd->argv);
+
+                        // restore standard input and output after execution
+                        dup2(fd_in, STDIN_FILENO);
+                        dup2(fd_out, STDOUT_FILENO);
                 }
                 // extern command and other command are require fork a new process
                 else {
-                        sigprocmask(SIG_BLOCK, &mask_chld, &prev_mask);
+                        // sigprocmask(SIG_BLOCK, &mask_chld, &prev_mask);
+                        printf("the %s command is not currently supported\n", cmd->argv[0]);
                 }
         }
         close(fd_in);
         close(fd_out);
 }
 
-//根据cmdline执行对应的命令
-void eval(char *cmdline) {
+/*void eval(char *cmdline) {
         char *argv[MAXARGS];
         char buf[MAXLINE];
         int bg;
         pid_t pid;
         sigset_t mask_all, mask_chld, prev_mask;
 
-        //解析命令
         strcpy(buf, cmdline);
         bg = parse_line(buf, argv);
 
@@ -87,7 +88,6 @@ void eval(char *cmdline) {
                 return;
         }
 
-        // 执行命令
         if (!is_buildin_command(argv)) {
                 sigfillset(&mask_all);
                 sigemptyset(&mask_chld);
@@ -99,14 +99,12 @@ void eval(char *cmdline) {
                         if (setpgid(0, 0) < 0)
                                 unix_error("setpgid error");
 
-                        //如果argv[0]以./开头，则是指定目录位置；否则在bin目录下搜索可执行文件
                         if (execvp(argv[0], argv) < 0) {
                                 printf("%s: Command not found.\n", argv[0]);
                                 exit(0);
                         }
                 }
 
-                /* 如果是前台任务，则shell等待 */
                 sigprocmask(SIG_BLOCK, &mask_all, NULL);
                 if (!bg) {
                         tcsetpgrp(STDIN_FILENO, pid);
@@ -122,7 +120,7 @@ void eval(char *cmdline) {
                 }
                 sigprocmask(SIG_SETMASK, &prev_mask, NULL);
         }
-}
+}*/
 
 int main(int argc, char *argv[]) {
         char cmdline[MAXLINE];
