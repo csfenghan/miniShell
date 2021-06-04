@@ -96,17 +96,16 @@ void *builtin_bg(int argc, char **argv) {
 
 static void *builtin_echo(int argc, char **argv) {
         for (int i = 1; i < argc; i++)
-                printf("%s ", argv[i]);
-        printf("\n");
-
+		write(STDOUT_FILENO,argv[i],strlen(argv[i]));
+	write(STDOUT_FILENO,"\n",1);
         return (void *)1;
 }
 static void *builtin_test(int argc,char **argv){
 	char buf[MAXLINE];
 
-	fgets(buf,MAXLINE,stdin);
-	printf("input string is: %s\n",buf);
-	printf("string size is: %ld",strlen(buf));
+	read(STDIN_FILENO,buf,MAXLINE);
+	write(STDOUT_FILENO,"result of test:",15);
+	write(STDOUT_FILENO,buf,strlen(buf));
 
 	return (void *)1;
 }
