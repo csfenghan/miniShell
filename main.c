@@ -1,43 +1,74 @@
-//shell的主体部分
+// shell的主体部分
 
-#include "unix_api.h"
+#include "builtin_command.h"
 #include "job_manger.h"
-#include "signal_handler.h"
 #include "parser_args.h"
+#include "signal_handler.h"
+#include "unix_api.h"
 
+// execute the command accordign to struct cmd_list
+void exec_cmd(struct cmd_list *cmd_list) {
+        int fd_in, fd_out;
+        int pipfd[2];
+        pid_t pid;
+        sigset_t mask_all, mask_chld, prev_mask;
+        struct cmd *cmd;
 
-/* 如果是内部命令，执行并返回1，否则返回0 */
-int is_buildin_command(char **argv) {
-        if (strcmp(argv[0], "cd") == 0) { /* cd命令实现 */
-                char *path;
+        sigfillset(&mask_all);
+        sigemptyset(&mask_chld);
+        sigaddset(&mask_chld, SIGCHLD);
 
-                path = (argv[1] == NULL) ? getenv("HOME") : argv[1];
-                if (argv[2] != NULL) {
-                        fprintf(stderr, "cd: too many arguments\n");
-                        return 1;
+        // save the descriptor standard output and standard input
+        fd_in = dup(STDIN_FILENO);
+        fd_out = dup(STDOUT_FILENO);
+
+        // exec the command
+        for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
+                // built-in command are not require fork a child process
+                if (cmd->cmd_type == CMD_POSITION_BUILTIN) {
+                        // set the input source according to the type of the previous cmd
+                        switch (cmd->prev_special_type) {
+                        case CMD_SPECIAL_AND:
+                        case CMD_SPECIAL_DEFAULT:
+                                // if the type is CMD_SPECIAL_AND or CMD_SPECIAL_DEFAULT,do nothing
+                                break;
+                        case CMD_SPECIAL_PIPE:
+                                // if the type is CMD_SPECIAL_PIPE,it means that pipfd[2] has been
+                                // initialized,	so it can be used directly
+                                dup2(STDIN_FILENO, pipfd[0]);
+                                close(pipfd[0]);
+                        default:
+                                break;
+                        }
+
+                        // set the ouput source according the type of the current cmd
+                        switch (cmd->next_special_type) {
+                        case CMD_SPECIAL_AND:
+                        case CMD_SPECIAL_DEFAULT:
+                                break;
+                        case CMD_SPECIAL_PIPE:
+                                // if the type is pipe,then initialize the pipfd[2] and redirect the
+                                // output
+                                pipe(pipfd);
+                                dup2(STDOUT_FILENO, pipfd[1]);
+                                close(pipfd[1]);
+                                break;
+                        case CMD_SPECIAL_LEFT_REDIR:
+                        case CMD_SPECIAL_RIGHT_REDIR:
+                        default:
+                                break;
+                        }
+
+                        // exec the command after the configuration
+                        exec_builtin_command(cmd->argv[0], cmd->argc, cmd->argv);
                 }
-                if (chdir(path) < 0)
-                        fprintf(stderr, "chdir error\n");
-                return 1;
-
-        } else if (strcmp(argv[0], "pwd") == 0) { /* pwd命令实现 */
-                printf("%s\n", getcwd(NULL, 0));
-                return 1;
-
-        } else if (strcmp(argv[0], "jobs") == 0) { /* jobs命令 */
-                list_jobs(jobs);
-                return 1;
-
-        } else if (strcmp(argv[0], "fg") == 0) { /* fg命令 */
-                do_fgbg(argv);
-                return 1;
-
-        } else if (strcmp(argv[0], "bg") == 0) {
-                do_fgbg(argv);
-                return 1;
+                // extern command and other command are require fork a new process
+                else {
+                        sigprocmask(SIG_BLOCK, &mask_chld, &prev_mask);
+                }
         }
-
-        return 0;
+        close(fd_in);
+        close(fd_out);
 }
 
 //根据cmdline执行对应的命令
@@ -56,7 +87,7 @@ void eval(char *cmdline) {
                 return;
         }
 
-        // 执行命令 
+        // 执行命令
         if (!is_buildin_command(argv)) {
                 sigfillset(&mask_all);
                 sigemptyset(&mask_chld);
@@ -68,7 +99,7 @@ void eval(char *cmdline) {
                         if (setpgid(0, 0) < 0)
                                 unix_error("setpgid error");
 
-			//如果argv[0]以./开头，则是指定目录位置；否则在bin目录下搜索可执行文件
+                        //如果argv[0]以./开头，则是指定目录位置；否则在bin目录下搜索可执行文件
                         if (execvp(argv[0], argv) < 0) {
                                 printf("%s: Command not found.\n", argv[0]);
                                 exit(0);
@@ -92,28 +123,34 @@ void eval(char *cmdline) {
                 sigprocmask(SIG_SETMASK, &prev_mask, NULL);
         }
 }
-/* Shell基本实现end */
 
-/* main start */
 int main(int argc, char *argv[]) {
         char cmdline[MAXLINE];
+        struct cmd_list *cmd_list;
 
-        /* 初始化作业控制*/
         init_jobs(jobs);
         setenv("PATH", "/home/fenghan/miniShell/bin", 1);
 
-        /* 设置信号处理函数 */
+        // setting up signal processing functions
         Signal(SIGINT, sigint_handler);
         Signal(SIGTSTP, sigtstp_handler);
         Signal(SIGQUIT, sigquit_handler);
         Signal(SIGCHLD, sigchld_handler);
 
         while (1) {
+                // waiting for user input
                 printf("%s>", getcwd(NULL, 0));
                 fflush(stdout);
                 Fgets(cmdline, MAXLINE, stdin);
                 if (feof(stdin))
                         exit(0);
-                eval(cmdline);
+
+                // parser the command
+                cmd_list = create_cmd_list(cmdline);
+                if (cmd_list != NULL) {
+                        // execute the command
+                        exec_cmd(cmd_list);
+                        destroy_cmd_list(cmd_list);
+                }
         }
 }
