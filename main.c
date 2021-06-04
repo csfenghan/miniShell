@@ -1,7 +1,7 @@
 //shell的主体部分
 
 #include "unix_api.h"
-#include "mini_shell.h"
+#include "job_manger.h"
 
 
 /* 如果是内部命令，执行并返回1，否则返回0 */

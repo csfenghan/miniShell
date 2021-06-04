@@ -1,3 +1,4 @@
+#include "builtin_command.h"
 #include "parser_args.h"
 #include <unix_api.h>
 
@@ -90,8 +91,12 @@ static struct cmd *create_cmd(char *buf) {
         char *front = result->argv[0];
         if (strlen(front) > 2 && front[0] == '.' && front[1] == '/')
                 result->cmd_type = CMD_POSITION_EXEC;
-        else
-                result->cmd_type = CMD_POSITION_BUILTIN;
+        else {
+                if (search_builtin_command(front) < 0)
+                        result->cmd_type = CMD_POSITION_EXTERN;
+                else
+                        result->cmd_type = CMD_POSITION_BUILTIN;
+        }
 
         return result;
 }

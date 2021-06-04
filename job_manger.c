@@ -1,5 +1,5 @@
 #include <unix_api.h>
-#include "mini_shell.h"
+#include "job_manger.h"
 
 
 /* 作业控制函数start */

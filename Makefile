@@ -1,5 +1,13 @@
 include makefile.defines
 
+SRC_FILES=main.c \
+	job_manger.c \
+	signal_handler.c \
+	parser_args.c \
+	builtin_command.c
+OBJ_FILES=$(patsubst %.c,%.o,$(SRC_FILES))
+OUTPUT=miniShell
+
 ###########################################
 #	构建过程
 ###########################################

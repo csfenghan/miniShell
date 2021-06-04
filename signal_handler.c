@@ -1,5 +1,5 @@
 #include <unix_api.h>
-#include "mini_shell.h"
+#include "job_manger.h"
 
 /* 信号处理函数start */
 void sigint_handler(int sig) {
