@@ -9,6 +9,7 @@ static void *builtin_jobs(int argc, char **argv);
 static void *builtin_fg(int argc, char **argv);
 static void *builtin_bg(int argc, char **argv);
 static void *builtin_pwd(int argc, char **argv);
+static void *builtin_echo(int argc, char **argv);
 
 /**********************************************************
  *	arrays for saving built-in commands and their interface
@@ -21,7 +22,9 @@ struct builtin_cmd builtin_cmds[] = {{"cd", builtin_cd},
                                      {"pwd", builtin_pwd},
                                      {"jobs", builtin_jobs},
                                      {"fg", builtin_fg},
-                                     {"bg", builtin_bg}};
+                                     {"bg", builtin_bg},
+				     {"echo",builtin_echo},
+};
 
 // search the command and return index of builtin_cmds if the command is builtin,
 // return -1 if the command not builtin
@@ -86,5 +89,13 @@ static void *builtin_fg(int argc, char **argv) {
 }
 void *builtin_bg(int argc, char **argv) {
         do_fgbg(argv);
+        return (void *)1;
+}
+
+static void *builtin_echo(int argc, char **argv) {
+        for (int i = 1; i < argc; i++)
+                printf("%s ", argv[i]);
+        printf("\n");
+
         return (void *)1;
 }
