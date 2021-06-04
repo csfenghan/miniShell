@@ -4,12 +4,11 @@
 #include <sys/types.h>
 #include <unix_api.h>
 
-/* 作业控制参数start */
 enum job_state {
-	UDF=0,
-	F_R=1,	// forground running
-	B_R=2,	// background running
-	B_S=3,	// background stop
+        UDF = 0,
+        F_R = 1, // forground running
+        B_R = 2, // background running
+        B_S = 3, // background stop
 };
 
 #define MAX_JOBS 1024
@@ -19,33 +18,18 @@ struct job_t {
         enum job_state state;
         char cmdline[MAXLINE];
 };
-int next_jid;
 int flags;
-extern char **environ;
 struct job_t jobs[MAX_JOBS];
 
-
-/* 信号处理函数start */
-void sigint_handler(int sig);
-void sigtstp_handler(int sig);
-void sigquit_handler(int sig);
-void sigchld_handler(int sig);
-/* 信号处理函数end */
-
-/* 作业控制函数start */
 void init_jobs(struct job_t *job_list);
 void add_job(struct job_t *job_list, pid_t pid, int state, char *cmdline);
 void del_job(struct job_t *job_list, pid_t jid);
-void list_jobs(struct job_t *job_list);
 void list_jobs(struct job_t *job_list);
 pid_t get_fg_job(struct job_t *job_list);
 pid_t jid2pid(struct job_t *job_list, pid_t jid);
 pid_t pid2jid(struct job_t *job_list, pid_t pid);
 struct job_t *jid2job(struct job_t *job_list, pid_t jid);
 struct job_t *pid2job(struct job_t *job_list, pid_t pid);
-void do_fgbg(char *argv[]) ;
-/* 作业控制函数end */
+void do_fgbg(char *argv[]);
 
-//命令解析
-int parse_line(char *buf, char **argv) ;
 #endif

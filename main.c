@@ -2,6 +2,8 @@
 
 #include "unix_api.h"
 #include "job_manger.h"
+#include "signal_handler.h"
+#include "parser_args.h"
 
 
 /* 如果是内部命令，执行并返回1，否则返回0 */

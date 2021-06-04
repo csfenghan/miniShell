@@ -1,6 +1,7 @@
-#include <unix_api.h>
 #include "job_manger.h"
+#include <unix_api.h>
 
+int next_jid;
 
 /* 作业控制函数start */
 void init_jobs(struct job_t *job_list) {
@@ -126,5 +127,3 @@ void do_fgbg(char *argv[]) {
         }
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
 }
-
-

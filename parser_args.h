@@ -44,5 +44,6 @@ struct cmd_list {
 
 void destroy_cmd_list(struct cmd_list *cmd_list);
 struct cmd_list *create_cmd_list(char *buf);
+int parse_line(char *buf, char **argv) ;
 
 #endif
