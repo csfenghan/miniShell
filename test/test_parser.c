@@ -1,6 +1,6 @@
 #include "../parser_args.h"
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 int main() {
@@ -12,8 +12,8 @@ int main() {
                 printf(">: ");
                 fflush(stdout);
                 fgets(buf, 1024, stdin);
-		if(feof(stdin))
-			break;
+                if (feof(stdin))
+                        break;
 
                 if ((cmd_list = create_cmd_list(buf)) == NULL) {
                         fprintf(stderr, "input format is error\n");
@@ -39,16 +39,29 @@ int main() {
                                 else if (cmd->cmd_type == CMD_POSITION_BUILTIN)
                                         printf("command type:builtin command\n");
 
-                                if (cmd->special_type == CMD_SPECIAL_PIPE)
-                                        printf("special type:pipe\n");
-                                else if (cmd->special_type == CMD_SPECIAL_LEFT_REDIR)
-                                        printf("special type:left redir\n");
-                                else if (cmd->special_type == CMD_SPECIAL_RIGHT_REDIR)
-                                        printf("special type:right redir\n");
-                                else if (cmd->special_type == CMD_SPECIAL_AND)
-                                        printf("special type:and\n");
+				// print the prev command special type
+                                if (cmd->prev_special_type == CMD_SPECIAL_PIPE)
+                                        printf("prev special type:pipe\n");
+                                else if (cmd->prev_special_type == CMD_SPECIAL_LEFT_REDIR)
+                                        printf("prev special type:left redir\n");
+                                else if (cmd->prev_special_type == CMD_SPECIAL_RIGHT_REDIR)
+                                        printf("prev special type:right redir\n");
+                                else if (cmd->prev_special_type == CMD_SPECIAL_AND)
+                                        printf("prev special type:and\n");
                                 else
-                                        printf("special type:default\n");
+                                        printf("prev special type:default\n");
+
+				// print the next command special type
+                                if (cmd->next_special_type == CMD_SPECIAL_PIPE)
+                                        printf("next special type:pipe\n");
+                                else if (cmd->next_special_type == CMD_SPECIAL_LEFT_REDIR)
+                                        printf("next special type:left redir\n");
+                                else if (cmd->next_special_type == CMD_SPECIAL_RIGHT_REDIR)
+                                        printf("next special type:right redir\n");
+                                else if (cmd->next_special_type == CMD_SPECIAL_AND)
+                                        printf("next special type:and\n");
+                                else
+                                        printf("next special type:default\n");
 
                                 for (int i = 0; i < cmd->argc; i++) {
                                         printf("arg%d: %s  ", i, cmd->argv[i]);
@@ -58,5 +71,5 @@ int main() {
                         destroy_cmd_list(cmd_list);
                 }
         }
-	exit(0);
+        exit(0);
 }
