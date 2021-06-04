@@ -51,7 +51,8 @@ static struct cmd *create_cmd(char *buf) {
         result->argc = 0;
         result->next = NULL;
         result->cmd_type = CMD_POSITION_UNKNOW;
-        result->special_type = CMD_SPECIAL_DEFAULT;
+        result->prev_special_type = CMD_SPECIAL_DEFAULT;
+        result->next_special_type = CMD_SPECIAL_DEFAULT;
 
         // replace '\n' with ' ' to facilitate parsing
         ptr = buf;
@@ -110,7 +111,7 @@ void destroy_cmd_list(struct cmd_list *cmd_list) {
 // parse the input
 struct cmd_list *create_cmd_list(char *buf) {
         // find the special characters:such as |,<,>,&&
-        struct cmd *curr;
+        struct cmd *curr, *last_cmd;
         struct cmd_list *result;
         char *left, *right;
 
@@ -121,10 +122,11 @@ struct cmd_list *create_cmd_list(char *buf) {
 
         left = buf;
         right = buf;
-        while (*right) {
+        last_cmd = NULL;
+        while (1) {
                 // determine if there are special characters
                 if ((*right == '|') || (*right == '<') || (*right == '>') ||
-                    ((*right == '&') && (*(right + 1) == '&'))) {
+                    ((*right == '&') && (*(right + 1) == '&')) || (*right == '\0')) {
 
                         char c = *right;
 
@@ -137,18 +139,24 @@ struct cmd_list *create_cmd_list(char *buf) {
                         // select the type according to the character
                         switch (c) {
                         case '|':
-                                curr->special_type = CMD_SPECIAL_PIPE;
+                                curr->next_special_type = CMD_SPECIAL_PIPE;
                                 break;
                         case '<':
-                                curr->special_type = CMD_SPECIAL_LEFT_REDIR;
+                                curr->next_special_type = CMD_SPECIAL_LEFT_REDIR;
                                 break;
                         case '>':
-                                curr->special_type = CMD_SPECIAL_RIGHT_REDIR;
+                                curr->next_special_type = CMD_SPECIAL_RIGHT_REDIR;
                                 break;
                         case '&':
-                                curr->special_type = CMD_SPECIAL_AND;
+                                curr->next_special_type = CMD_SPECIAL_AND;
                                 right++;
                                 break;
+                        default:
+                                curr->next_special_type = CMD_SPECIAL_DEFAULT;
+                                break;
+                        }
+                        if (last_cmd != NULL) {
+                                curr->prev_special_type = last_cmd->next_special_type;
                         }
 
                         // inserting a list node
@@ -161,29 +169,16 @@ struct cmd_list *create_cmd_list(char *buf) {
                                 result->tail = curr;
                         }
                         result->len++;
+                        if (c == '\0')
+                                break;
 
                         left = ++right;
-                        continue;
-                }
-                right++;
+                        last_cmd = curr;
+                } else
+                        right++;
         }
-        // parser again when end the loop
-        result->len++;
-        if ((curr = create_cmd(left)) == NULL) {
-                destroy_cmd_list(result);
-                return NULL;
-        }
-        curr->next = NULL;
-
-        if (result->head == NULL) {
-                result->head = curr;
-                result->tail = curr;
-        } else {
-                result->tail->next = curr;
-                result->tail = curr;
-        }
-        char *back = curr->argv[curr->argc - 1];
         // background job or forground job
+        char *back = curr->argv[curr->argc - 1];
         if (back[strlen(back) - 1] == '&') {
                 result->job_type = CMD_JOB_BG;
                 back[strlen(back) - 1] = '\0';

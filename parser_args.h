@@ -29,7 +29,8 @@ struct cmd {
         char **argv;            //命令
         enum cmd_type cmd_type; //是根据目录来进行执行命令，还是shell内置或bin中的命令
 
-        enum special_type special_type; //后面是否有管道等特殊符号，只有当next不为NULL时才有效
+        enum special_type prev_special_type; //后面是否有管道等特殊符号，只有当next不为NULL时才有效
+	enum special_type next_special_type; //前面的命令是否使用管道等特殊符号
         struct cmd *next; //指向下一个cmd
 };
 
