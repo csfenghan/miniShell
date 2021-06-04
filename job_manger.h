@@ -5,16 +5,18 @@
 #include <unix_api.h>
 
 /* 作业控制参数start */
-#define UDF 0 /* 未定义 */
-#define F_R 1 /* 前台运行 */
-#define B_R 2 /* 后台运行 */
-#define B_S 3 /* 后台停止 */
+enum job_state {
+	UDF=0,
+	F_R=1,	// forground running
+	B_R=2,	// background running
+	B_S=3,	// background stop
+};
 
 #define MAX_JOBS 1024
 struct job_t {
         pid_t pid;
         pid_t jid;
-        int state;
+        enum job_state state;
         char cmdline[MAXLINE];
 };
 int next_jid;
