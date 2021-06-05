@@ -29,7 +29,7 @@ void process_builtin_command(struct cmd *cmd) {
                 // initialized,	so it can be used directly
                 dup2(pipfd[0], STDIN_FILENO);
                 close(pipfd[0]);
-		break;
+                break;
         default:
                 break;
         }
@@ -118,8 +118,6 @@ void process_extern_command(struct cmd *cmd) {
                 if (cmd->next_special_type == CMD_SPECIAL_PIPE) {
                         dup2(pipfd[1], STDOUT_FILENO);
                 }
-                close(pipfd[0]);
-                close(pipfd[1]);
 
                 if (cmd->cmd_type == CMD_POSITION_EXEC) {
                         if (execv(cmd->argv[0], cmd->argv) < 0) {
@@ -127,7 +125,6 @@ void process_extern_command(struct cmd *cmd) {
                                 exit(0);
                         }
                 } else if (cmd->cmd_type == CMD_POSITION_EXTERN) {
-                        // if (execlp("grep", "grep", "-rn", "main", (char *)0) < 0) {
                         if (execvp(cmd->argv[0], cmd->argv) < 0) {
                                 fprintf(stderr, "execvp error:%s\n", strerror(errno));
                                 exit(0);
@@ -156,31 +153,33 @@ int main(int argc, char *argv[]) {
         struct cmd_list *cmd_list;
 
         init_jobs(jobs);
-        //setenv("PATH", "/home/fenghan/miniShell/bin", 1);
+        setenv("PATH", "/home/fenghan/miniShell/bin", 1);
 
         // setting up signal processing functions
         Signal(SIGINT, sigint_handler);
         Signal(SIGTSTP, sigtstp_handler);
-        //Signal(SIGQUIT, sigquit_handler);
+        // Signal(SIGQUIT, sigquit_handler);
         // Signal(SIGCHLD, sigchld_handler);
 
-        while (1) {
-                // waiting for user input
-                printf("%s>", getcwd(NULL, 0));
-                fflush(stdout);
-                if (fgets(cmdline, MAXLINE, stdin) == NULL) {
-                        perror("fgets error");
-                        exit(0);
-                }
-                if (feof(stdin))
-                        exit(0);
-
-                // parser the command
-                cmd_list = create_cmd_list(cmdline);
-                if (cmd_list != NULL) {
-                        // execute the command
-                        exec_cmd(cmd_list);
-                        destroy_cmd_list(cmd_list);
-                }
+        // while (1) {
+        // waiting for user input
+        printf("%s>", getcwd(NULL, 0));
+        fflush(stdout);
+        if (fgets(cmdline, MAXLINE, stdin) == NULL) {
+                perror("fgets error");
+                exit(0);
         }
+        if (feof(stdin))
+                exit(0);
+
+        // parser the command
+        cmd_list = create_cmd_list(cmdline);
+        if (cmd_list != NULL) {
+                // execute the command
+                exec_cmd(cmd_list);
+                destroy_cmd_list(cmd_list);
+        }
+        //}
+        while (1)
+                ;
 }
