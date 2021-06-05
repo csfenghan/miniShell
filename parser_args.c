@@ -69,7 +69,7 @@ static struct cmd *create_cmd(char *buf) {
                 while (*ptr == ' ')
                         ptr++;
         }
-        result->argv = Malloc(sizeof(char *) * result->argc);
+        result->argv = Malloc(sizeof(char *) * (result->argc + 1));
 
         // parse the input,save the results to result->argv
         ptr = buf;
@@ -97,6 +97,7 @@ static struct cmd *create_cmd(char *buf) {
                 else
                         result->cmd_type = CMD_POSITION_BUILTIN;
         }
+        result->argv[result->argc] = NULL;
 
         return result;
 }
