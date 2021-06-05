@@ -29,6 +29,7 @@ void process_builtin_command(struct cmd *cmd) {
                 // initialized,	so it can be used directly
                 dup2(pipfd[0], STDIN_FILENO);
                 close(pipfd[0]);
+		break;
         default:
                 break;
         }
@@ -85,8 +86,7 @@ void process_extern_command(struct cmd *cmd) {
         case CMD_SPECIAL_PIPE:
                 // if the type is CMD_SPECIAL_PIPE,it means that pipfd[2] has been
                 // initialized,	so it can be used directly
-                dup2(pipfd[0], STDIN_FILENO);
-                backup_in_fd = dup(STDIN_FILENO);
+                backup_in_fd = dup(pipfd[0]);
                 close(pipfd[0]);
         default:
                 break;
@@ -127,12 +127,13 @@ void process_extern_command(struct cmd *cmd) {
                                 exit(0);
                         }
                 } else if (cmd->cmd_type == CMD_POSITION_EXTERN) {
+                        // if (execlp("grep", "grep", "-rn", "main", (char *)0) < 0) {
                         if (execvp(cmd->argv[0], cmd->argv) < 0) {
                                 fprintf(stderr, "execvp error:%s\n", strerror(errno));
                                 exit(0);
                         }
                 } else {
-                        printf("???");
+                        fprintf(stderr, "unknow command type\n");
                 }
         }
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
@@ -155,12 +156,12 @@ int main(int argc, char *argv[]) {
         struct cmd_list *cmd_list;
 
         init_jobs(jobs);
-        setenv("PATH", "/home/fenghan/miniShell/bin", 1);
+        //setenv("PATH", "/home/fenghan/miniShell/bin", 1);
 
         // setting up signal processing functions
         Signal(SIGINT, sigint_handler);
         Signal(SIGTSTP, sigtstp_handler);
-        Signal(SIGQUIT, sigquit_handler);
+        //Signal(SIGQUIT, sigquit_handler);
         // Signal(SIGCHLD, sigchld_handler);
 
         while (1) {
