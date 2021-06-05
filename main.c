@@ -144,7 +144,7 @@ void exec_cmd(struct cmd_list *cmd_list) {
 
         // exec the command
         for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
-                if (cmd->argc == CMD_POSITION_BUILTIN)
+                if (cmd->cmd_type == CMD_POSITION_BUILTIN)
                         process_builtin_command(cmd);
                 else
                         process_extern_command(cmd);
