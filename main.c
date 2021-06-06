@@ -59,7 +59,7 @@ void process_builtin_command(struct cmd *cmd) {
         dup2(fd_in, STDIN_FILENO);
         dup2(fd_out, STDOUT_FILENO);
 
-        sigprocmask(SIG_BLOCK, &mask_prev, NULL);
+        sigprocmask(SIG_SETMASK, &mask_prev, NULL);
 
         close(fd_in);
         close(fd_out);
@@ -116,6 +116,11 @@ pid_t process_extern_command(struct cmd *cmd) {
                         dup2(pipfd[1], STDOUT_FILENO);
                 }
 
+                /*printf("printf the output,%d\n", cmd->argc);
+                for (int i = 0; cmd->argv[i] != (char *)0; i++)
+                        printf("args%d:%s\n", i, cmd->argv[i]);
+                fflush(stdout);*/
+
                 if (cmd->cmd_type == CMD_POSITION_EXEC) {
                         if (execv(cmd->argv[0], cmd->argv) < 0) {
                                 fprintf(stderr, "execv error:%s\n", strerror(errno));
@@ -138,42 +143,49 @@ pid_t process_extern_command(struct cmd *cmd) {
 // execute the command accordign to struct cmd_list
 void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
         extern int is_forground_running;
-        struct cmd *cmd;
         pid_t pid;
         sigset_t mask_all, mask_prev;
+        struct cmd *cmd;
         struct job_t *job;
         enum process_state state;
+        int is_contain_extern_command;
 
         job = create_job();
-        if (cmd_list->job_type == CMD_JOB_BG)
+        if (cmd_list->job_type == CMD_JOB_FG) {
+                is_forground_running = 1;
                 state = BACKGROUND_RUNNING;
-        else if (cmd_list->job_type == CMD_JOB_FG)
+        } else {
+                is_forground_running = 0;
                 state = FORGROUND_RUNNING;
+        }
 
         // exec the command
+        is_contain_extern_command = 0;
         for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
                 if (cmd->cmd_type == CMD_POSITION_BUILTIN)
                         process_builtin_command(cmd);
                 else {
                         pid = process_extern_command(cmd);
                         add_process(job, pid, cmd->argv[0], state);
+                        is_contain_extern_command = 1;
                 }
         }
+        if (is_contain_extern_command) {
+                sigfillset(&mask_all);
+                sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
+                add_job(job, cmdline);
+		fflush(stdout);
+                while (is_forground_running)
+                        sigsuspend(&mask_prev);
 
-        sigfillset(&mask_all);
-        sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
-
-        add_job(job, cmdline);
-        if (is_forground_running)
-                sigsuspend(&mask_prev);
-
-        sigprocmask(SIG_SETMASK, &mask_prev, NULL);
+                sigprocmask(SIG_SETMASK, &mask_prev, NULL);
+        }
 }
 int main(int argc, char *argv[]) {
         char cmdline[MAXLINE];
         struct cmd_list *cmd_list;
 
-        // init_jobs(jobs);
+        init_job();
         setenv("PATH", "/home/fenghan/miniShell/bin", 1);
 
         // setting up signal processing functions

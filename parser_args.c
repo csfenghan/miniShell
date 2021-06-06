@@ -189,7 +189,7 @@ struct cmd_list *create_cmd_list(char *buf) {
                 result->job_type = CMD_JOB_BG;
                 back[strlen(back) - 1] = '\0';
                 if (strlen(back) == 0) {
-                        curr->argc--;
+                        curr->argv[--curr->argc] = (char *)0;
                 }
         } else
                 result->job_type = CMD_JOB_FG;

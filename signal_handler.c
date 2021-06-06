@@ -60,6 +60,7 @@ void sigchld_handler(int sig) {
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
                 if (del_process(pid) == 1)
                         is_forground_running = 0;
+                printf("pid:%d normally exit\n", pid);
 
         } else if (WIFSTOPPED(status)) { // stop
                 // if (fg_pid == pid)

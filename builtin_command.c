@@ -82,15 +82,15 @@ static void *builtin_pwd(int argc, char **argv) {
 }
 
 static void *builtin_jobs(int argc, char **argv) {
-        list_jobs(jobs);
+	list_job();
         return (void *)1;
 }
 static void *builtin_fg(int argc, char **argv) {
-        do_fgbg(argv);
+        //do_fgbg(argv);
         return (void *)1;
 }
 void *builtin_bg(int argc, char **argv) {
-        do_fgbg(argv);
+        //do_fgbg(argv);
         return (void *)1;
 }
 
