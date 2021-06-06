@@ -66,16 +66,13 @@ void process_builtin_command(struct cmd *cmd) {
 }
 
 // extern command and other command are require fork a new process
-void process_extern_command(struct cmd *cmd) {
-        sigset_t mask_all, mask_chld, mask_prev;
+pid_t process_extern_command(struct cmd *cmd) {
+        sigset_t mask_all, mask_prev;
         pid_t pid;
         int backup_in_fd;
 
         sigfillset(&mask_all);
-        sigemptyset(&mask_chld);
-        sigaddset(&mask_chld, SIGCHLD);
-
-        sigprocmask(SIG_BLOCK, &mask_chld, &mask_prev);
+        sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
 
         // set the input source according the type of the current cmd
         switch (cmd->prev_special_type) {
@@ -134,52 +131,74 @@ void process_extern_command(struct cmd *cmd) {
                 }
         }
         sigprocmask(SIG_SETMASK, &mask_prev, NULL);
+
+        return pid;
 }
 
 // execute the command accordign to struct cmd_list
-void exec_cmd(struct cmd_list *cmd_list) {
+void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
+        extern int is_forground_running;
         struct cmd *cmd;
+        pid_t pid;
+        sigset_t mask_all, mask_prev;
+        struct job_t *job;
+        enum process_state state;
+
+        job = create_job();
+        if (cmd_list->job_type == CMD_JOB_BG)
+                state = BACKGROUND_RUNNING;
+        else if (cmd_list->job_type == CMD_JOB_FG)
+                state = FORGROUND_RUNNING;
 
         // exec the command
         for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
                 if (cmd->cmd_type == CMD_POSITION_BUILTIN)
                         process_builtin_command(cmd);
-                else
-                        process_extern_command(cmd);
+                else {
+                        pid = process_extern_command(cmd);
+                        add_process(job, pid, cmd->argv[0], state);
+                }
         }
+
+        sigfillset(&mask_all);
+        sigprocmask(SIG_BLOCK, &mask_all, &mask_prev);
+
+        add_job(job, cmdline);
+        if (is_forground_running)
+                sigsuspend(&mask_prev);
+
+        sigprocmask(SIG_SETMASK, &mask_prev, NULL);
 }
 int main(int argc, char *argv[]) {
         char cmdline[MAXLINE];
         struct cmd_list *cmd_list;
 
-        init_jobs(jobs);
+        // init_jobs(jobs);
         setenv("PATH", "/home/fenghan/miniShell/bin", 1);
 
         // setting up signal processing functions
-        Signal(SIGINT, sigint_handler);
-        Signal(SIGTSTP, sigtstp_handler);
+        // Signal(SIGINT, sigint_handler);
+        // Signal(SIGTSTP, sigtstp_handler);
         // Signal(SIGQUIT, sigquit_handler);
-        // Signal(SIGCHLD, sigchld_handler);
+        Signal(SIGCHLD, sigchld_handler);
 
-        // while (1) {
-        // waiting for user input
-        printf("%s>", getcwd(NULL, 0));
-        fflush(stdout);
-        if (fgets(cmdline, MAXLINE, stdin) == NULL) {
-                perror("fgets error");
-                exit(0);
-        }
-        if (feof(stdin))
-                exit(0);
+        while (1) {
+                // waiting for user input
+                printf("%s>", getcwd(NULL, 0));
+                fflush(stdout);
+                if (fgets(cmdline, MAXLINE, stdin) == NULL) {
+                        perror("fgets error");
+                        exit(0);
+                }
+                if (feof(stdin))
+                        exit(0);
 
-        // parser the command
-        cmd_list = create_cmd_list(cmdline);
-        if (cmd_list != NULL) {
-                // execute the command
-                exec_cmd(cmd_list);
-                destroy_cmd_list(cmd_list);
+                // parser the command
+                cmd_list = create_cmd_list(cmdline);
+                if (cmd_list != NULL) {
+                        // execute the command
+                        exec_cmd(cmd_list, cmdline);
+                        destroy_cmd_list(cmd_list);
+                }
         }
-        //}
-        while (1)
-                ;
 }
