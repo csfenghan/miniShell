@@ -49,10 +49,26 @@ void list_job() {
 
         curr = job_list;
         while (curr != NULL) {
-                printf("[%d]", curr->jid);
+                printf("[%d]\n", curr->jid);
                 struct process_info *info = curr->process_head;
                 while (info != NULL) {
-                        printf(" running %s\n", info->cmdline);
+                        char *state;
+                        switch (info->state) {
+                        case FORGROUND_RUNNING:
+                                state = "f_running";
+                                break;
+                        case BACKGROUND_RUNNING:
+                                state = "b_running";
+                                break;
+                        case STOP:
+                                state = "stop";
+                                break;
+                        case UNDEFINE:
+                        default:
+                                state = "undefine";
+                                break;
+                        }
+                        printf("    %s    %s\n", state, info->cmdline);
                         info = info->next;
                 }
 
