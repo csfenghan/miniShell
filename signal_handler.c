@@ -1,7 +1,7 @@
 #include "job_manger.h"
 #include <unix_api.h>
 
-int forground_jid= 1;
+int forground_jid= 0;
 
 /* 信号处理函数start */
 void sigint_handler(int sig) {
