@@ -24,6 +24,7 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 
 	// 1. block the chld signal
 	sigemptyset(&mask_chld);
+	sigaddset(&mask_chld,SIGCHLD);
 	sigprocmask(SIG_BLOCK,&mask_chld,&mask_prev);
 
 	for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
@@ -96,6 +97,7 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 
 		add_job(job, cmdline);
 		// waiting for forground job
+		forground_jid=get_fg_job();
 		while (forground_jid>0)
 			sigsuspend(&mask_prev);
 
