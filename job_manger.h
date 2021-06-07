@@ -32,10 +32,11 @@ struct job_t {
 
 void init_job() ;
 struct job_t *create_job();
+void destroy_job(struct job_t *job);
 void add_process(struct job_t *job,pid_t pid,char *cmdline,enum process_state state);
 void add_job(struct job_t *job,char *cmdline);
 void list_job();
-void destroy_job(struct job_t *job) ;
+void del_job(struct job_t *job) ;
 int get_fg_job();
 
 int del_process(pid_t pid);

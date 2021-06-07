@@ -26,6 +26,18 @@ struct job_t *create_job() {
 	return job;
 }
 
+void destroy_job(struct job_t *job){
+	struct process_info *curr,*next;
+
+	curr=job->process_head;
+	while(curr!=NULL){
+		next=curr->next;
+		free(curr);
+		curr=next;
+	}
+	free(job);
+}
+
 void add_process(struct job_t *job, pid_t pid, char *cmdline, enum process_state state) {
 	if (job->process_head == NULL) {
 		job->process_head = Malloc(sizeof(struct process_info));
@@ -50,6 +62,25 @@ void add_job(struct job_t *job, char *cmdline) {
 	job->next = job_tail;
 	job_tail->prev->next = job;
 	job_tail->prev = job;
+}
+void del_job(struct job_t *job) {
+	struct process_info *info;
+
+	job->prev->next = job->next;
+	job->next->prev = job->prev;
+
+	// free the process_info list
+	info = job->process_head;
+	while (info != NULL) {
+		struct process_info *temp = info;
+		info = info->next;
+		free(temp);
+	}
+
+	if (next_jid == job->jid)
+		next_jid--;
+	// free the job_t
+	free(job);
 }
 
 void list_job() {
@@ -82,30 +113,11 @@ void list_job() {
 			printf("    %s    %s\n", state, info->cmdline);
 			info = info->next;
 		}
-
 		curr = curr->next;
 	}
+	fflush(stdout);
 }
 
-void destroy_job(struct job_t *job) {
-	struct process_info *info;
-
-	job->prev->next = job->next;
-	job->next->prev = job->prev;
-
-	// free the process_info list
-	info = job->process_head;
-	while (info != NULL) {
-		struct process_info *temp = info;
-		info = info->next;
-		free(temp);
-	}
-
-	if (next_jid == job->jid)
-		next_jid--;
-	// free the job_t
-	free(job);
-}
 
 // return jid if a job is deleted,else retrun 0
 int del_process(pid_t pid) {
@@ -127,7 +139,7 @@ found:
 	info->state = DONE;
 	if (++(job->done_count) == job->process_count) {
 		result=job->jid;
-		destroy_job(job);
+		del_job(job);
 	}
 	return result;
 }
