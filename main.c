@@ -10,13 +10,11 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	sigset_t mask_all, mask_prev,mask_chld;
 	struct cmd *cmd;
 	struct job_t *job;
-	enum process_state state;
 	int fd_in, fd_out;
 	int pipfd[2] = {-1, -1};
 	extern int forground_jid;
 
 	job = create_job();
-	state=(cmd_list->job_type==CMD_JOB_FG)?FORGROUND_RUNNING:BACKGROUND_RUNNING;
 
 	// 0. save the standard input and output
 	fd_in = dup(STDIN_FILENO);
@@ -80,7 +78,10 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 
 				unix_error("execvp extern command error");
 			}
-			add_process(job, pid, cmd->argv[0], state);
+			if(cmd_list->job_type==CMD_JOB_FG)
+				add_process(job,pid,cmd->argv[0],FORGROUND_RUNNING);
+			else
+				add_process(job,pid,cmd->argv[0],BACKGROUND_RUNNING);
 		}
 
 		// 4. restore the standard input and output
@@ -100,7 +101,6 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 		forground_jid=get_fg_job();
 		while (forground_jid>0)
 			sigsuspend(&mask_prev);
-
 	}else{
 		destroy_job(job);
 	}
@@ -129,7 +129,6 @@ int main(int argc, char *argv[]) {
 		}
 		if (feof(stdin))
 			exit(0);
-
 		// parser the command
 		cmd_list = create_cmd_list(cmdline);
 		if (cmd_list != NULL) {
