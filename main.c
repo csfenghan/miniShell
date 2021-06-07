@@ -13,16 +13,10 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	enum process_state state;
 	int fd_in, fd_out;
 	int pipfd[2] = {-1, -1};
-	extern int is_forground_running;
+	extern int forground_jid;
 
 	job = create_job();
-	if (cmd_list->job_type == CMD_JOB_FG) {
-		is_forground_running = 1;
-		state = BACKGROUND_RUNNING;
-	} else {
-		is_forground_running = 0;
-		state = FORGROUND_RUNNING;
-	}
+	state=(cmd_list->job_type==CMD_JOB_FG)?FORGROUND_RUNNING:BACKGROUND_RUNNING;
 
 	// 0. save the standard input and output
 	fd_in = dup(STDIN_FILENO);
@@ -101,9 +95,8 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 		sigprocmask(SIG_BLOCK, &mask_all, NULL);
 
 		add_job(job, cmdline);
-
 		// waiting for forground job
-		while (is_forground_running)
+		while (forground_jid>0)
 			sigsuspend(&mask_prev);
 
 	}else{
