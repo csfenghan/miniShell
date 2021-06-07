@@ -4,13 +4,61 @@
 #include "signal_handler.h"
 #include "unix_api.h"
 
+// handle the redirect
+void handle_redirect(struct cmd *cmd,int pipfd[2]){
+	// 1. set the input source according the type of the current cmd
+	switch (cmd->prev_special_type) {
+		case CMD_SPECIAL_AND:
+			break;
+		case CMD_SPECIAL_DEFAULT:
+			break;
+		case CMD_SPECIAL_PIPE:
+			dup2(pipfd[0], STDIN_FILENO);
+			close(pipfd[0]);
+			pipfd[0] = -1;
+		default:
+			break;
+	}
+
+	// 2. set the ouput source according the type of the current cmd
+	switch (cmd->next_special_type) {
+		case CMD_SPECIAL_AND:
+			break;
+		case CMD_SPECIAL_DEFAULT:
+			break;
+		case CMD_SPECIAL_PIPE:
+			if (pipfd[0] > 0 || pipfd[1] > 0){
+				unix_error("pidfd[0] should be zero");
+			}
+			pipe(pipfd);
+			dup2(pipfd[1], STDOUT_FILENO);
+
+			close(pipfd[1]);
+			pipfd[1] = -1;
+			break;
+		case CMD_SPECIAL_LEFT_REDIR:
+			break;
+		case CMD_SPECIAL_RIGHT_REDIR:
+			if(strlen(cmd->argv[cmd->argc-1])==1){
+				
+			}else{
+
+			}
+			break;
+		default:
+			break;
+	}
+
+
+}
+
 // execute the command accordign to struct cmd_list
 void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	pid_t pid;
 	sigset_t mask_all, mask_prev,mask_chld;
 	struct cmd *cmd;
 	struct job_t *job;
-	int fd_in, fd_out;
+	int fd_in, fd_out,fd_err;
 	int pipfd[2] = {-1, -1};
 	extern int forground_jid;
 
@@ -19,6 +67,7 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	// 0. save the standard input and output
 	fd_in = dup(STDIN_FILENO);
 	fd_out = dup(STDOUT_FILENO);
+	fd_err=dup(STDERR_FILENO);
 
 	// 1. block the chld signal
 	sigemptyset(&mask_chld);
@@ -26,43 +75,8 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	sigprocmask(SIG_BLOCK,&mask_chld,&mask_prev);
 
 	for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
-		// 1. set the input source according the type of the current cmd
-		switch (cmd->prev_special_type) {
-			case CMD_SPECIAL_AND:
-				break;
-			case CMD_SPECIAL_DEFAULT:
-				break;
-			case CMD_SPECIAL_PIPE:
-				dup2(pipfd[0], STDIN_FILENO);
-				close(pipfd[0]);
-				pipfd[0] = -1;
-			default:
-				break;
-		}
-
-		// 2. set the ouput source according the type of the current cmd
-		switch (cmd->next_special_type) {
-			case CMD_SPECIAL_AND:
-				break;
-			case CMD_SPECIAL_DEFAULT:
-				break;
-			case CMD_SPECIAL_PIPE:
-				if (pipfd[0] > 0 || pipfd[1] > 0){
-					unix_error("pidfd[0] should be zero");
-				}
-				pipe(pipfd);
-				dup2(pipfd[1], STDOUT_FILENO);
-
-				close(pipfd[1]);
-				pipfd[1] = -1;
-				break;
-			case CMD_SPECIAL_LEFT_REDIR:
-				break;
-			case CMD_SPECIAL_RIGHT_REDIR:
-				break;
-			default:
-				break;
-		}
+		// 2. redirect operation
+		handle_redirect(cmd,pipfd);
 
 		// 3. exec the command
 		if (cmd->cmd_type == CMD_POSITION_BUILTIN)
@@ -87,9 +101,11 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 		// 4. restore the standard input and output
 		dup2(fd_in, STDIN_FILENO);
 		dup2(fd_out, STDOUT_FILENO);
+		dup2(fd_err,STDERR_FILENO);
 	}
 	close(fd_in);
 	close(fd_out);
+	close(fd_err);
 
 	// 5. wait for forground job or destroy struct job depending on the cmd type
 	if(job->process_head!=NULL){
