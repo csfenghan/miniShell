@@ -10,6 +10,8 @@ void init_job() {
 	job_head->next = job_tail;
 	job_tail->prev = job_head;
 	job_tail->next = NULL;
+
+	job_head->jid=0;
 }
 
 struct job_t *create_job() {
@@ -73,7 +75,7 @@ void del_job(struct job_t *job) {
 	}
 
 	if (next_jid == job->jid)
-		next_jid--;
+		next_jid=job->prev->jid;
 	// free the job_t
 	free(job);
 }
