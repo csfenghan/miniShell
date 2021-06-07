@@ -4,9 +4,6 @@
 #include "signal_handler.h"
 #include "unix_api.h"
 
-void process_builtin_command(struct cmd *cmd) {
-}
-
 // execute the command accordign to struct cmd_list
 void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	pid_t pid;
@@ -14,7 +11,7 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	struct cmd *cmd;
 	struct job_t *job;
 	enum process_state state;
-	int fd_in, fd_out,is_contain_extern_command;
+	int fd_in, fd_out;
 	int pipfd[2] = {-1, -1};
 	extern int is_forground_running;
 
@@ -30,7 +27,6 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	// 0. save the standard input and output
 	fd_in = dup(STDIN_FILENO);
 	fd_out = dup(STDOUT_FILENO);
-	is_contain_extern_command = 0;
 
 	// 1. block the chld signal
 	sigemptyset(&mask_chld);
@@ -90,7 +86,6 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 				unix_error("execvp extern command error");
 			}
 			add_process(job, pid, cmd->argv[0], state);
-			is_contain_extern_command = 1;
 		}
 
 		// 4. restore the standard input and output
@@ -100,7 +95,8 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 	close(fd_in);
 	close(fd_out);
 
-	if (is_contain_extern_command) {
+	// 5. wait for forground job or destroy struct job depending on the cmd type
+	if(job->process_head!=NULL){
 		sigfillset(&mask_all);
 		sigprocmask(SIG_BLOCK, &mask_all, NULL);
 
@@ -110,6 +106,8 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 		while (is_forground_running)
 			sigsuspend(&mask_prev);
 
+	}else{
+		destroy_job(job);
 	}
 	sigprocmask(SIG_SETMASK, &mask_prev, NULL);
 }
