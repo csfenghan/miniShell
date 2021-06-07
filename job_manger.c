@@ -16,12 +16,7 @@ struct job_t *create_job() {
 	struct job_t *job;
 
 	job = Malloc(sizeof(struct job_t));
-
-	job->jid = -1;
-	job->process_count = 0;
-	job->done_count = 0;
-	job->prev = NULL;
-	job->next = NULL;
+	memset(job,0,sizeof(struct job_t));
 
 	return job;
 }
