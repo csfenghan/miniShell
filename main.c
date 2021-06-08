@@ -5,7 +5,12 @@
 #include "unix_api.h"
 
 // handle the redirect
-void handle_redirect(struct cmd *cmd,int pipfd[2]){
+// return 1 if it is a command,else return 0
+int handle_redirect(struct cmd *cmd,int pipfd[2]){
+	int fd;
+	int result;
+
+	result=1;
 	// 1. set the input source according the type of the current cmd
 	switch (cmd->prev_special_type) {
 		case CMD_SPECIAL_AND:
@@ -16,6 +21,9 @@ void handle_redirect(struct cmd *cmd,int pipfd[2]){
 			dup2(pipfd[0], STDIN_FILENO);
 			close(pipfd[0]);
 			pipfd[0] = -1;
+		case CMD_SPECIAL_RIGHT_REDIR:
+			result=0;
+			break;
 		default:
 			break;
 	}
@@ -27,9 +35,8 @@ void handle_redirect(struct cmd *cmd,int pipfd[2]){
 		case CMD_SPECIAL_DEFAULT:
 			break;
 		case CMD_SPECIAL_PIPE:
-			if (pipfd[0] > 0 || pipfd[1] > 0){
+			if (pipfd[0] > 0 || pipfd[1] > 0)
 				unix_error("pidfd[0] should be zero");
-			}
 			pipe(pipfd);
 			dup2(pipfd[1], STDOUT_FILENO);
 
@@ -39,17 +46,19 @@ void handle_redirect(struct cmd *cmd,int pipfd[2]){
 		case CMD_SPECIAL_LEFT_REDIR:
 			break;
 		case CMD_SPECIAL_RIGHT_REDIR:
-			if(strlen(cmd->argv[cmd->argc-1])==1){
-				
-			}else{
-
-			}
+			if(pipfd[0]>0 || pipfd[1]>0)
+				unix_error("pipfd should be zero");
+			umask(0000);
+			if((fd = open(cmd->next->argv[0],O_RDWR|O_CREAT),S_IRUSR|S_IWUSR)<0)
+				fprintf(stderr,"can't open file %s\n",cmd->next->argv[0]);
+			dup2(fd,STDOUT_FILENO);
+			printf("a test\n");
+			close(fd);
 			break;
 		default:
 			break;
 	}
-
-
+	return result;
 }
 
 // execute the command accordign to struct cmd_list
@@ -76,7 +85,8 @@ void exec_cmd(struct cmd_list *cmd_list, char *cmdline) {
 
 	for (cmd = cmd_list->head; cmd != NULL; cmd = cmd->next) {
 		// 2. redirect operation
-		handle_redirect(cmd,pipfd);
+		if(handle_redirect(cmd,pipfd) == 0)
+			continue;
 
 		// 3. exec the command
 		if (cmd->cmd_type == CMD_POSITION_BUILTIN)
