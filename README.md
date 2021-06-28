@@ -1,14 +1,14 @@
 # miniShell
 
-## 依赖
-    # 先安装一个我实现的unix常用的函数的封装库
+## Hot to build and run
+
+    # First install a library that encapsulates the unix system interface
     git clone git@github.com:csfenghan/unix_lib.git
     cd unix_lib && make
     make install
 
-## 运行
-    # 编译运行shell
+    # build and run miniShell
     git clone git@github.com:csfenghan/miniShell.git
-    cd miniShell.git && make
+    cd miniShell && make
     make run
 
